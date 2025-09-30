@@ -13,12 +13,9 @@ async def async_setup_entry(
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
 
-    # ADDED LUMBAR AND BACK POSITION ENTITIES
     add_entities([
         XCover(device, "head_position"), 
         XCover(device, "foot_position"),
-        XCover(device, "lumbar_position"), 
-        XCover(device, "back_position"),
     ])
 
 

@@ -138,10 +138,10 @@ class Device:
             "foot_move": move != 0xF and move & 2 > 0,
 
             # data does not have info on these from what i can tell
-            "lumbar_position": 0, 
-            "back_position": 0, 
-            "lumbar_move": False,
-            "back_move": False,
+            #"lumbar_position": 0, 
+            #"back_position": 0, 
+            #"lumbar_move": False,
+            #"back_move": False,
             
             # only 1/3/6 for intensity
             "head_massage": int(data1[4] / 6 * 100),
@@ -230,10 +230,10 @@ class Device:
                 elif attr == "foot_position":
                     key = 'foot_up' if current < target else 'foot_down'
                 # figure out what to do with lumbar and back if nothing comes back
-                elif attr == "lumbar_position":
-                    key = 'lumbar_up' if current < target else 'lumbar_down'
-                elif attr == "back_position":
-                    key = 'back_up' if current < target else 'back_down'
+                #elif attr == "lumbar_position":
+                #    key = 'lumbar_up' if current < target else 'lumbar_down'
+                #elif attr == "back_position":
+                #    key = 'back_up' if current < target else 'back_down'
 
                 if key and (command_to_send := COMMANDS_NUS_6BYTE.get(key)):
                     break # Send only one continuous command per cycle

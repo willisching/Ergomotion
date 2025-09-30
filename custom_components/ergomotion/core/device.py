@@ -211,7 +211,8 @@ class Device:
         self.target_state[name] = value
         self.client.ping()
         # testing to see if can just send
-        self.send_command()
+        if self.target_state:
+            self.send_command()
 
     def send_command(self):
         _LOGGER.debug("send_command")

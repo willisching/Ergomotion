@@ -97,7 +97,8 @@ class Device:
         # decimal value:	               1800                 1/3/6    1/3/6    ?*           ?*           0/1
         # 
         # Notes:
-        #             - * not entirely sure what the max value is as testing kept getting slightly different results
+        # - * not entirely sure what the max value is as testing kept getting slightly different results
+        # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
 
         if isinstance(data, bool):
             _LOGGER.debug("isinstance")
@@ -206,9 +207,11 @@ class Device:
             return Attribute(is_on=self.current_state.get(attr))
 
     def set_attribute(self, name: str, value: int | str | bool | None):
-        _LOGGER.debug(f"set_attribute: {name}")
+        _LOGGER.debug(f"set_attribute: {name, value}")
         self.target_state[name] = value
         self.client.ping()
+        # testing to see if can just send
+        self.send_command()
 
     def send_command(self):
         _LOGGER.debug("send_command")

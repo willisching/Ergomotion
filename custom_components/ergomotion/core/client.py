@@ -73,6 +73,7 @@ class Client:
         self.send_data = data
 
         if self.client and self.client.is_connected and not self.send_task:
+            _LOGGER.debug("in send asyncio")
             self.send_task = asyncio.create_task(self._send_coro())
 
     async def _send_coro(self):

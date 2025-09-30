@@ -69,6 +69,7 @@ class Client:
         self.ping_task = None
 
     def send(self, data: bytes):
+        _LOGGER.debug("in send")
         self.send_data = data
 
         if self.client and self.client.is_connected and not self.send_task:

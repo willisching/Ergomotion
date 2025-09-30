@@ -1,10 +1,12 @@
 import time
+import logging
 from typing import TypedDict, Callable
 
 from bleak import BLEDevice, BleakGATTCharacteristic
 
 from .client import Client
 
+_LOGGER = logging.getLogger(__name__)
 MIN_STEP = 100
 SCENE_OPTIONS = ["flat", "snore", "memory1", "memory2", "memory3", "zerog"] 
 TIMER_OPTIONS = ["10", "20", "30"]
@@ -74,12 +76,14 @@ class Device:
         return self.client.device.address
 
     def register_update(self, attr: str, handler: Callable):
+        _LOGGER.debug("register_update")
         if attr == "connection":
             self.updates_connect.append(handler)
         else:
             self.updates_state.append(handler)
 
     def on_data(self, char: BleakGATTCharacteristic | None, data: bytes | bool):
+        _LOGGER.debug("on_data")
         
         # data packet example from what i can tell
         #                                                data1                                       data2
@@ -96,6 +100,7 @@ class Device:
         #             - * not entirely sure what the max value is as testing kept getting slightly different results
 
         if isinstance(data, bool):
+            _LOGGER.debug("isinstance")
             # connected true/false update
             self.connected = data
 
@@ -106,13 +111,13 @@ class Device:
         if self.current_data != data:
             # we're assuming a length of 20 but idk; could be 16?
             if data[0] == 0xED and len(data) == 16:
-                print("length: 16")
+                _LOGGER.debug("length: 16")
                 self.parse_data(data, data[3:], data[8:])
             elif data[0] == 0xF0 and len(data) == 19:
-                print("length: 19")
+                _LOGGER.debug("length: 19")
                 self.parse_data(data, data[3:], data[8:])
             elif data[0] == 0xF1 and len(data) == 20:
-                print("length: 20")
+                _LOGGER.debug("length: 20")
                 self.parse_data(data, data[3:], data[8:])
 
 
@@ -120,6 +125,7 @@ class Device:
             self.send_command()
 
     def parse_data(self, data: bytes, data1: bytes, data2: bytes):
+        _LOGGER.debug("parse_data")
         self.current_data = data
 
         head_position = int.from_bytes(data2[0:2], "little")
@@ -165,6 +171,7 @@ class Device:
             handler()
 
     def attribute(self, attr: str) -> Attribute:
+        _LOGGER.debug("attribute")
         if attr == "connection":
             return Attribute(
                 is_on=self.connected, extra={"mac": self.client.device.address}
@@ -199,10 +206,12 @@ class Device:
             return Attribute(is_on=self.current_state.get(attr))
 
     def set_attribute(self, name: str, value: int | str | bool | None):
+        _LOGGER.debug("set_attribute")
         self.target_state[name] = value
         self.client.ping()
 
     def send_command(self):
+        _LOGGER.debug("send_command")
         # idk if there's a "stop"; from what i've seen it's just another command interupts to stop
         if "stop" in self.target_state:
             self.target_state.clear()

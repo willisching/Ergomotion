@@ -11,7 +11,7 @@ class FlowHandler(ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title="", data=user_input)
 
         devices = bluetooth.async_get_scanner(self.hass).discovered_devices
-        macs = [v.address for v in devices if v.name and v.name.startswith("base-i4.")]
+        macs = [v.address for v in devices if v.name and v.name.startswith("KSBT04C")]
 
         return self.async_show_form(
             step_id="user",

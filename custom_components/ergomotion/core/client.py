@@ -44,7 +44,7 @@ class Client:
                 self.callback(char=None, data=True)
 
                 await self.client.start_notify(
-                    "0000ffe4-0000-1000-8000-00805f9b34fb", self.callback
+                    "6E400003-B5A3-F393-E0A9-E50E24DCCA9E", self.callback
                 )
 
                 _LOGGER.debug("connected")
@@ -78,7 +78,7 @@ class Client:
         try:
             _LOGGER.debug(f"send command: {self.send_data.hex()}")
             await self.client.write_gatt_char(
-                "0000ffe9-0000-1000-8000-00805f9b34fb", self.send_data, True
+                "6E400002-B5A3-F393-E0A9-E50E24DCCA9E", self.send_data, False
             )
         except Exception as e:
             _LOGGER.warning("send error", exc_info=e)

@@ -13,7 +13,13 @@ async def async_setup_entry(
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
 
-    add_entities([XCover(device, "head_position"), XCover(device, "foot_position")])
+    # ADDED LUMBAR AND BACK POSITION ENTITIES
+    add_entities([
+        XCover(device, "head_position"), 
+        XCover(device, "foot_position"),
+        XCover(device, "lumbar_position"), 
+        XCover(device, "back_position"),
+    ])
 
 
 class XCover(XEntity, CoverEntity, RestoreEntity):
@@ -21,6 +27,7 @@ class XCover(XEntity, CoverEntity, RestoreEntity):
 
     async def async_added_to_hass(self) -> None:
         state = await self.async_get_last_state()
+        # Ensure max_position is saved/loaded for new entities
         max_position = state.attributes.get("max_position") if state else None
         self._attr_extra_state_attributes = {"max_position": max_position or 100}
 
@@ -48,6 +55,8 @@ class XCover(XEntity, CoverEntity, RestoreEntity):
             elif position < self._attr_current_cover_position:
                 self._attr_is_opening = False
                 self._attr_is_closing = True
+            else:
+                self._attr_is_opening = self._attr_is_closing = False
         else:
             self._attr_is_opening = self._attr_is_closing = False
 

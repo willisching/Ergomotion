@@ -207,7 +207,7 @@ class Device:
             return Attribute(is_on=self.current_state.get(attr))
 
     def set_attribute(self, name: str, value: int | str | bool | None):
-        _LOGGER.debug(f"set_attribute: {name, value}")
+        _LOGGER.debug(f"set_attribute: {name}")
         self.target_state[name] = value
         self.client.ping()
         # testing to see if can just send

@@ -71,7 +71,9 @@ class Client:
     def send(self, data: bytes):
         _LOGGER.debug("in send")
         self.send_data = data
-
+        _LOGGER.debug(f"send command: {self.client}")
+        _LOGGER.debug(f"send command: {self.client.is_connected}")
+        _LOGGER.debug(f"send command: {self.send_task}")
         if self.client and self.client.is_connected and not self.send_task:
             _LOGGER.debug("in send asyncio")
             self.send_task = asyncio.create_task(self._send_coro())

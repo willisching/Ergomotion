@@ -207,7 +207,7 @@ class Device:
             return Attribute(is_on=self.current_state.get(attr))
 
     def set_attribute(self, name: str, value: int | str | bool | None):
-        _LOGGER.debug(f"set_attribute: {name}")
+        _LOGGER.debug(f"set_attribute: {name, value}")
         self.target_state[name] = value
         self.client.ping()
         # testing to see if can just send
@@ -216,6 +216,7 @@ class Device:
 
     def send_command(self):
         _LOGGER.debug("send_command")
+        _LOGGER.debug(f"target_state: {self.target_state}")
         # idk if there's a "stop"; from what i've seen it's just another command interupts to stop
         if "stop" in self.target_state:
             self.target_state.clear()

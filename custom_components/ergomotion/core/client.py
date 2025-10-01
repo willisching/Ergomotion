@@ -74,6 +74,7 @@ class Client:
         _LOGGER.debug(f"send command: {self.client}")
         _LOGGER.debug(f"send command: {self.client.is_connected}")
         _LOGGER.debug(f"send command: {self.send_task}")
+        self.send_task = None
         # not sure if reporting connecting correctly so trying without check
         #if self.client and self.client.is_connected and not self.send_task:
         if self.client and not self.send_task:

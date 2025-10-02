@@ -5,7 +5,6 @@ from typing import Callable, Optional
 
 from bleak import BleakClient, BLEDevice, BleakError
 from bleak_retry_connector import establish_connection
-from bleak_retry_connector import BleakGATTCharacteristic
 
 _LOGGER = logging.getLogger(__name__)
 

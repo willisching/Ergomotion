@@ -83,7 +83,8 @@ class Device:
             self.updates_state.append(handler)
 
     def on_data(self, char: BleakGATTCharacteristic | None, data: bytes | bool):
-        _LOGGER.debug("on_data")
+        _LOGGER.debug(f"on_data: {data}")
+
         
         # data packet example from what i can tell
         #                                                data1                                       data2

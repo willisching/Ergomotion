@@ -119,6 +119,11 @@ class Device:
         # If we have a target state, check if movement is needed after receiving NEW data
         if self.target_state:
             self.send_command() # <-- COMMAND RE-EVALUATED HERE TO DRIVE CONTINUOUS MOVEMENT
+        else:
+            # When the bed is idle, periodically request status 
+            # (e.g., every 5th time on_data runs or with a timer/delay)
+            # For simplicity, we'll request status if idle:
+            self.client.request_status()
 
 
     def parse_data(self, data: bytes, data1: bytes, data2: bytes):

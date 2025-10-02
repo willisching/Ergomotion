@@ -8,19 +8,17 @@ from bleak_retry_connector import establish_connection
 
 _LOGGER = logging.getLogger(__name__)
 
-ACTIVE_TIME = 120  # seconds
+ACTIVE_TIME = 120 # seconds
 
 # --- CONSTANTS FOR COMMUNICATION ---
 # The UUID for the WRITE characteristic (where you send commands)
 COMMAND_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 # The UUID for the NOTIFY/READ status characteristic
 STATUS_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
-# How often to check the status if notifications are not working (seconds)
-POLL_INTERVAL = 1
 
-# --- TEST WAKE-UP COMMAND ---
-# This is a test, based on your 'flat' command from device.py
-WAKEUP_COMMAND_TEST = b'\x04\x02\x08\x00\x00\x00'
+# The safest command to send to ask for a status update without causing movement.
+STATUS_REQUEST_COMMAND = b'\x04\x02\x00\x00\x00\x00' 
+
 
 class Client:
     def __init__(self, device: BLEDevice, callback: Callable):
@@ -35,8 +33,7 @@ class Client:
         self.send_task: Optional[asyncio.Task] = None
         self.send_data: Optional[bytes] = None
         
-        # New polling task to manually read status
-        self.poll_task: Optional[asyncio.Task] = None # <-- NEW
+        # self.poll_task is removed as polling is now manual via request_status()
 
         self.ping()
 
@@ -57,21 +54,17 @@ class Client:
 
                 self.callback(char=None, data=True)
 
-                # 1. Attempt to start notify
+                # Attempt to start notify (Still necessary to receive spontaneous movement updates)
                 await self.client.start_notify(
                     STATUS_CHAR_UUID, self.callback
                 )
                 
-                # 2. SEND THE WAKE-UP COMMAND TEST
-                _LOGGER.debug(f"Sending wake-up test command: {WAKEUP_COMMAND_TEST.hex()}")
+                # Manual request for status update right after connecting
                 await self.client.write_gatt_char(
-                    COMMAND_CHAR_UUID, WAKEUP_COMMAND_TEST, False
+                    COMMAND_CHAR_UUID, STATUS_REQUEST_COMMAND, False
                 )
                 
-                # 3. START POLLING
-                self.poll_task = asyncio.create_task(self._poll_status())
-                
-                _LOGGER.debug("connected")
+                _LOGGER.debug("connected and status requested")
 
                 while (delay := self.ping_time - time.time()) > 0:
                     await asyncio.sleep(delay)
@@ -89,38 +82,21 @@ class Client:
             except Exception as e:
                 _LOGGER.warning("ping error", exc_info=e)
             finally:
-                # --- CANCEL POLLING TASK ---
-                if self.poll_task: # <-- NEW
-                    self.poll_task.cancel()
-                    self.poll_task = None
-                
+                # No poll_task to cancel
                 self.client = None
                 self.callback(None, False)
                 await asyncio.sleep(1)
 
         self.ping_task = None
 
-    # --- NEW POLLING COROUTINE ---
-    async def _poll_status(self):
-        """Repeatedly reads the status characteristic to get state data."""
-        while self.client and self.client.is_connected:
-            try:
-                # 1. READ the characteristic value
-                data = await self.client.read_gatt_char(STATUS_CHAR_UUID)
-                
-                # 2. Pass the data to the device callback for parsing (self.callback is Device.on_data)
-                self.callback(char=None, data=data)
-                
-            except asyncio.CancelledError:
-                # Exit cleanly when the task is cancelled (during disconnect)
-                raise
-            except BleakError as e:
-                _LOGGER.debug(f"Polling read error: {e}")
-            except Exception as e:
-                _LOGGER.warning(f"Unexpected polling error: {e}")
-            
-            # 3. Wait for the interval before polling again
-            await asyncio.sleep(POLL_INTERVAL)
+    # Removed: async def _poll_status(self): 
+
+    def request_status(self):
+        """Manually sends the zero command to request a fresh status report."""
+        if self.client and self.client.is_connected and not self.send_task:
+            _LOGGER.debug(f"Requesting status with command: {STATUS_REQUEST_COMMAND.hex()}")
+            self.send(STATUS_REQUEST_COMMAND)
+
 
     def send(self, data: bytes):
         self.send_data = data
@@ -133,7 +109,7 @@ class Client:
         try:
             _LOGGER.debug(f"send coro: {self.send_data.hex()}")
             await self.client.write_gatt_char(
-                COMMAND_CHAR_UUID, self.send_data, False # Use new constant
+                COMMAND_CHAR_UUID, self.send_data, False
             )
         except Exception as e:
             _LOGGER.warning("send error", exc_info=e)

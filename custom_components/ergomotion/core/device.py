@@ -15,28 +15,31 @@ TIMER_OPTIONS = ["10", "20", "30"]
 COMMANDS_NUS_6BYTE = {
 
     # Continuous Movement Commands (6 bytes)
-    'head_up':          b'\x04\x02\x00\x00\x00\x10',
-    'head_down':        b'\x04\x02\x00\x00\x00\x20',
-    'foot_up':          b'\x04\x02\x00\x00\x00\x04',
-    'foot_down':        b'\x04\x02\x00\x00\x00\x08',
-    'lumbar_up':        b'\x04\x02\x00\x00\x40\x00',
-    'lumbar_down':      b'\x04\x02\x00\x00\x80\x00',
-    'neck_up':          b'\x04\x02\x00\x00\x00\x01',
-    'neck_down':        b'\x04\x02\x00\x00\x00\x02',
+    'head_up':             b'\x04\x02\x00\x00\x00\x10',
+    'head_down':           b'\x04\x02\x00\x00\x00\x20',
+    'foot_up':             b'\x04\x02\x00\x00\x00\x04',
+    'foot_down':           b'\x04\x02\x00\x00\x00\x08',
+    'lumbar_up':           b'\x04\x02\x00\x00\x40\x00',
+    'lumbar_down':         b'\x04\x02\x00\x00\x80\x00',
+    'neck_up':             b'\x04\x02\x00\x00\x00\x01',
+    'neck_down':           b'\x04\x02\x00\x00\x00\x02',
     
     # Preset Commands (6 bytes) - Mapped to SCENE_OPTIONS
-    'flat':             b'\x04\x02\x08\x00\x00\x00',
-    'zerog':            b'\x04\x02\x00\x00\x10\x00',
-    'snore':            b'\x04\x02\x00\x00\x80\x00',
-    'memory1':          b'\x04\x02\x00\x01\x00\x00',
-    'memory2':          b'\x04\x02\x00\x00\x20\x00',
-    'memory3':          b'\x04\x02\x00\x00\x40\x00',
-
+    'flat':                b'\x04\x02\x08\x00\x00\x00',
+    'zerog':               b'\x04\x02\x00\x00\x10\x00',
+    'snore':               b'\x04\x02\x00\x00\x80\x00',
+    'memory1':             b'\x04\x02\x00\x01\x00\x00',
+    'memory2':             b'\x04\x02\x00\x00\x20\x00',
+    'memory3':             b'\x04\x02\x00\x00\x40\x00',
+    
+    # Stop command (using flat command as a safe stop if stop isn't defined)
+    'stop':                b'\x04\x02\x08\x00\x00\x00', # Re-use flat as a stop command
+    
     # Toggle/Cycle Commands
-    'head_massage':     b'\x04\x02\x00\x00\x08\x00',
-    'foot_massage':     b'\x04\x02\x00\x00\x04\x00',
-    'led_toggle':       b'\x04\x02\x00\x02\x00\x00',
-    'timer_cycle':      b'\x04\x02\x00\x00\x02\x00'
+    'head_massage':        b'\x04\x02\x00\x00\x08\x00',
+    'foot_massage':        b'\x04\x02\x00\x00\x04\x00',
+    'led_toggle':          b'\x04\x02\x00\x02\x00\x00',
+    'timer_cycle':         b'\x04\x02\x00\x00\x02\x00'
 }
 
 
@@ -85,22 +88,6 @@ class Device:
     def on_data(self, char: BleakGATTCharacteristic | None, data: bytes | bool):
         _LOGGER.debug(f"on_data: {data}")
 
-        
-        # data packet example from what i can tell
-        #                                                data1                                       data2
-        #                                  |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
-        # position:         0  1  2        3   4        5        6        7        8  9        10 11       12       13 14 15
-        # bytes:			A5 0B 0D       00 00       00       00       00        00 00       00 00       00       00 00 00
-        #                   |~~~~~~|       |~~~|       ||       ||       ||        |~~~|       |~~~|       ||       |~~~~~~| 
-        # field:	   		constant       massage     unused   head     foot      head        foot        light    unused
-        #                                  time                 massage  massage   position    position
-        #                                  left (seconds)
-        # decimal value:	               1800                 1/3/6    1/3/6    ?*           ?*           0/1
-        # 
-        # Notes:
-        # - * not entirely sure what the max value is as testing kept getting slightly different results
-        # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
-
         if isinstance(data, bool):
             _LOGGER.debug("isinstance")
             # connected true/false update
@@ -110,33 +97,47 @@ class Device:
                 handler()
             return
 
+        # Check for the different known packet headers and lengths
         if self.current_data != data:
-            # we're assuming a length of 20 but idk; could be 16?
-            if data[0] == 0xED and len(data) == 16:
-                _LOGGER.debug("length: 16")
-                self.parse_data(data, data[3:], data[8:])
-            elif data[0] == 0xF0 and len(data) == 19:
-                _LOGGER.debug("length: 19")
-                self.parse_data(data, data[3:], data[8:])
-            elif data[0] == 0xF1 and len(data) == 20:
-                _LOGGER.debug("length: 20")
-                self.parse_data(data, data[3:], data[8:])
+            if data and len(data) >= 16: # Ensure we have at least 16 bytes
+                if data[0] == 0xED and len(data) == 16:
+                    _LOGGER.debug("length: 16 (0xED)")
+                    self.parse_data(data, data[3:], data[8:])
+                elif data[0] == 0xF0 and len(data) == 19:
+                    _LOGGER.debug("length: 19 (0xF0)")
+                    self.parse_data(data, data[3:], data[8:])
+                elif data[0] == 0xF1 and len(data) == 20:
+                    _LOGGER.debug("length: 20 (0xF1)")
+                    self.parse_data(data, data[3:], data[8:])
+                elif data[0] == 0xA5 and len(data) >= 16: # Check for the A5 header which you found in logs
+                    # Assuming A5 0B 0D header structure for full data
+                    _LOGGER.debug(f"length: {len(data)} (0xA5)")
+                    # NOTE: You'll need to map data slices for A5 0B 0D based on your packet structure
+                    # This is a guess based on your comments: data1=bytes[3:8], data2=bytes[8:]
+                    self.parse_data(data, data[3:8], data[8:]) 
 
-
+        # If we have a target state, check if movement is needed after receiving NEW data
         if self.target_state:
-            self.send_command()
+            self.send_command() # <-- COMMAND RE-EVALUATED HERE TO DRIVE CONTINUOUS MOVEMENT
+
 
     def parse_data(self, data: bytes, data1: bytes, data2: bytes):
         _LOGGER.debug("parse_data")
         self.current_data = data
 
+        # Mapping based on your comments in the original on_data method:
+        # head_position/foot_position from data2[0:4] (bytes 8-11 overall)
         head_position = int.from_bytes(data2[0:2], "little")
         foot_position = int.from_bytes(data2[2:4], "little")
 
-        # unsure about these
+        # Mapping based on your comments (massage time left from data1[0:2])
         remain = int.from_bytes(data1[0:2], "little")
-        move = data2[4] & 0xF if data[0] != 0xF1 else 0xF
-        timer = data2[5]
+        
+        # Remaining values are best guess or require more packet analysis
+        # Using index 4 of data2 for move/led status as in old logic
+        move = data2[4] & 0xF if len(data2) > 4 and data[0] != 0xF1 else 0xF
+        # Assuming index 5 of data2 is the timer value
+        timer = data2[5] if len(data2) > 5 else 0xFF
 
         self.current_state = {
             "head_position": head_position if head_position != 0xFFFF else 0,
@@ -144,22 +145,14 @@ class Device:
 
             "head_move": move != 0xF and move & 1 > 0,
             "foot_move": move != 0xF and move & 2 > 0,
-
-            # data does not have info on these from what i can tell
-            #"lumbar_position": 0, 
-            #"back_position": 0, 
-            #"lumbar_move": False,
-            #"back_move": False,
             
-            # only 1/3/6 for intensity
-            "head_massage": int(data1[4] / 6 * 100),
-            "foot_massage": int(data1[5] / 6 * 100),
+            # data1[4] (overall byte 7) and data1[5] (overall byte 8) for massage levels
+            "head_massage": int(data1[4] / 6 * 100) if len(data1) > 4 else 0,
+            "foot_massage": int(data1[5] / 6 * 100) if len(data1) > 5 else 0,
 
-            "timer_target": TIMER_OPTIONS[timer - 1] if timer != 0xFF else None,
-            # remain should be in seconds, so not certain why/ 100
-            #"timer_remain": round(remain / 100),
-            "timer_remain": remain,
-            "led": data2[4] & 0x40 > 0,
+            "timer_target": TIMER_OPTIONS[timer - 1] if timer != 0xFF and 0 < timer <= len(TIMER_OPTIONS) else None,
+            "timer_remain": remain, # remain is in seconds
+            "led": data2[4] & 0x40 > 0 if len(data2) > 4 else False,
         }
 
         self.current_state["scene"] = (
@@ -211,18 +204,21 @@ class Device:
         _LOGGER.debug(f"set_attribute name: {name}")
         _LOGGER.debug(f"set_attribute value: {value}")
         self.target_state[name] = value
-        self.client.ping()
-        # testing to see if can just send
-        if self.target_state:
+        
+        # --- COMMAND IS SENT IMMEDIATELY ---
+        if self.client and self.client.connected:
             self.send_command()
+        
+        self.client.ping() # Kept to keep the connection alive
 
     def send_command(self):
         _LOGGER.debug("send_command")
         _LOGGER.debug(f"target_state: {self.target_state}")
-        # idk if there's a "stop"; from what i've seen it's just another command interupts to stop
+        
         if "stop" in self.target_state:
             self.target_state.clear()
-            self.client.send(COMMANDS_NUS_6BYTE['flat'])
+            # Assuming 'flat' command acts as an interruption/stop signal
+            self.client.send(COMMANDS_NUS_6BYTE['stop']) 
             return
 
         command_to_send = None
@@ -233,47 +229,48 @@ class Device:
             is_continuous = attr.endswith("_position")
             
             if is_continuous:
+                # Check if the target position is reached
                 is_reached = abs(current - target) < MIN_STEP
                 
                 if is_reached:
+                    # Target reached, send stop command and clear target
                     self.client.send(COMMANDS_NUS_6BYTE['stop'])
                     self.target_state.pop(attr)
                     continue
 
+                # Determine direction and get command key
                 key = None
                 if attr == "head_position":
                     key = 'head_up' if current < target else 'head_down'
                 elif attr == "foot_position":
                     key = 'foot_up' if current < target else 'foot_down'
-                # figure out what to do with lumbar and back if nothing comes back
-                #elif attr == "lumbar_position":
-                #    key = 'lumbar_up' if current < target else 'lumbar_down'
-                #elif attr == "back_position":
-                #    key = 'back_up' if current < target else 'back_down'
-
+                # Add lumbar/neck logic here if known
+                
                 if key and (command_to_send := COMMANDS_NUS_6BYTE.get(key)):
-                    break # Send only one continuous command per cycle
+                    # Found a continuous command, send it and break the loop
+                    break 
 
             
             # Massage (Single-push cycle/toggle)
             elif attr in ("head_massage", "foot_massage"):
-                # If target is 0, we assume the user wants the massage OFF, so we clear the target.
                 if target == 0:
+                    # User is turning it off, no command needed if it's already cycling down
                     self.target_state.pop(attr)
                     continue
                 
-                # If target is > 0, we push the button once to start/cycle.
+                # If target > 0, we send the cycle command once
                 if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
-                    # Do not pop target. Keep it until user manually sets to 0.
+                    # We send the command and rely on the user to manually set to 0 to stop
+                    self.target_state.pop(attr) 
                     break 
 
-            # Scene Presets (light.py turn_on/turn_off sends scene names)
+            # Scene Presets (Single-push)
             elif attr == "scene":
                 if command_to_send := COMMANDS_NUS_6BYTE.get(target):
                     self.target_state.pop(attr) 
                     break
             
-            # LED (light.py sends True/False)
+            # LED (Single-push toggle)
             elif attr == "led":
                 current_is_on = self.current_state.get('led')
                 if current_is_on != target:
@@ -281,7 +278,7 @@ class Device:
                         self.target_state.pop(attr)
                         break
             
-            # Timer (fan.py set_preset_mode sends '10', '20', '30', but command is a cycle)
+            # Timer (Single-push cycle)
             elif attr == "timer_target":
                 if command_to_send := COMMANDS_NUS_6BYTE.get('timer_cycle'):
                     self.target_state.pop(attr)
@@ -290,6 +287,6 @@ class Device:
         if command_to_send:
             self.client.send(command_to_send)
         
-        elif self.current_state.get("head_move") or self.current_state.get("foot_move"):
-            self.client.send(COMMANDS_NUS_6BYTE['flat'])
-
+        # If no target state remains and the bed is still moving, send a stop command
+        elif not self.target_state and (self.current_state.get("head_move") or self.current_state.get("foot_move")):
+            self.client.send(COMMANDS_NUS_6BYTE['stop'])

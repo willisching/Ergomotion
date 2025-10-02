@@ -16,7 +16,7 @@ COMMAND_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 # The UUID for the NOTIFY/READ status characteristic
 STATUS_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 # How often to check the status if notifications are not working (seconds)
-POLL_INTERVAL = 0.5 
+POLL_INTERVAL = 1
 
 
 class Client:

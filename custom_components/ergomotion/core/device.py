@@ -225,7 +225,7 @@ class Device:
         self.target_state[name] = value
         
         # --- COMMAND IS SENT IMMEDIATELY ---
-        if self.client and self.client.connected:
+        if self.client and self.connected:
             self.send_command()
         
         self.client.ping() # Kept to keep the connection alive

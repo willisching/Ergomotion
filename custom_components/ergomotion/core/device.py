@@ -89,7 +89,6 @@ class Device:
         _LOGGER.debug(f"on_data: {data}")
 
         if isinstance(data, bool):
-            _LOGGER.debug("isinstance")
             # connected true/false update
             self.connected = data
 
@@ -109,27 +108,18 @@ class Device:
                 elif data[0] == 0xF1 and len(data) == 20:
                     _LOGGER.debug("length: 20 (0xF1)")
                     self.parse_data(data, data[3:], data[8:])
-                elif data[0] == 0xA5 and len(data) >= 16: # Check for the A5 header which you found in logs
-                    # Assuming A5 0B 0D header structure for full data
+                elif data[0] == 0xA5 and len(data) >= 16:
                     _LOGGER.debug(f"length: {len(data)} (0xA5)")
-                    # NOTE: You'll need to map data slices for A5 0B 0D based on your packet structure
-                    # This is a guess based on your comments: data1=bytes[3:8], data2=bytes[8:]
                     self.parse_data(data, data[3:8], data[8:]) 
 
-        # If we have a target state, check if movement is needed after receiving NEW data
         if self.target_state:
-            self.send_command() # <-- COMMAND RE-EVALUATED HERE TO DRIVE CONTINUOUS MOVEMENT
-        else:
-            # When the bed is idle, periodically request status 
-            # (e.g., every 5th time on_data runs or with a timer/delay)
-            # For simplicity, we'll request status if idle:
-            self.client.request_status()
+            self.send_command()
 
 
     def parse_data(self, data: bytes, data1: bytes, data2: bytes):
         _LOGGER.debug("parse_data")
         self.current_data = data
-                # data packet example from what i can tell
+        # data packet example from what i can tell
         #                                                data1                                       data2
         #                                  |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
         # position:         0  1  2        3   4        5        6        7        8  9        10 11       12       13 14 15
@@ -144,18 +134,13 @@ class Device:
         # - * not entirely sure what the max value is as testing kept getting slightly different results
         # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
 
-        # Mapping based on your comments in the original on_data method:
-        # head_position/foot_position from data2[0:4] (bytes 8-11 overall)
+
         head_position = int.from_bytes(data2[0:2], "little")
         foot_position = int.from_bytes(data2[2:4], "little")
-
-        # Mapping based on your comments (massage time left from data1[0:2])
         remain = int.from_bytes(data1[0:2], "little")
         
-        # Remaining values are best guess or require more packet analysis
-        # Using index 4 of data2 for move/led status as in old logic
+
         move = data2[4] & 0xF if len(data2) > 4 and data[0] != 0xF1 else 0xF
-        # Assuming index 5 of data2 is the timer value
         timer = data2[5] if len(data2) > 5 else 0xFF
 
         self.current_state = {
@@ -224,11 +209,10 @@ class Device:
         _LOGGER.debug(f"set_attribute value: {value}")
         self.target_state[name] = value
         
-        # --- COMMAND IS SENT IMMEDIATELY ---
         if self.client and self.connected:
             self.send_command()
         
-        self.client.ping() # Kept to keep the connection alive
+        self.client.ping()
 
     def send_command(self):
         _LOGGER.debug("send_command")

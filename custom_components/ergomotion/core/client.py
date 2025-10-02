@@ -89,8 +89,6 @@ class Client:
 
         self.ping_task = None
 
-    # Removed: async def _poll_status(self): 
-
     def request_status(self):
         """Manually sends the zero command to request a fresh status report."""
         if self.client and self.client.is_connected and not self.send_task:
@@ -113,5 +111,4 @@ class Client:
             )
         except Exception as e:
             _LOGGER.warning("send error", exc_info=e)
-
         self.send_task = None

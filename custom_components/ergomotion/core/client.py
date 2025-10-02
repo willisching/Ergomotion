@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Callable, Optional
 
-from bleak import BleakClient, BLEDevice, BleakError
+from bleak import BleakClient, BLEDevice, BleakError, BleakGATTCharacteristic
 from bleak_retry_connector import establish_connection
 
 _LOGGER = logging.getLogger(__name__)

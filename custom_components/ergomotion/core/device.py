@@ -166,6 +166,35 @@ class Device:
         
         self.client.ping()
 
+    def attribute(self, name: str) -> Attribute:
+        """Returns the current state dictionary for a specific attribute name."""
+        
+        # This function needs to return a dictionary object that includes:
+        # 'is_on' (for sensors/lights), 'position' (for covers), etc.
+
+        if name == "head_position":
+            return Attribute(
+                position=self.current_state["head_position"],
+                move=self.current_state["head_move"],
+            )
+        elif name == "foot_position":
+            return Attribute(
+                position=self.current_state["foot_position"],
+                move=self.current_state["foot_move"],
+            )
+        elif name == "connection":
+            return Attribute(
+                is_on=self.connected,
+            )
+        elif name == "led":
+            return Attribute(
+                is_on=self.current_state["led"],
+            )
+        # Add other attributes here (massage, timer, etc.) as needed by your integration files.
+        # This structure is common for Home Assistant integrations.
+        
+        return Attribute()
+
     def send_command(self):
         _LOGGER.debug("send_command")
         

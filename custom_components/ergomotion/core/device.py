@@ -124,6 +124,20 @@ class Device:
     def parse_data(self, data: bytes, data1: bytes, data2: bytes):
         _LOGGER.debug("parse_data")
         self.current_data = data
+                # data packet example from what i can tell
+        #                                                data1                                       data2
+        #                                  |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+        # position:         0  1  2        3   4        5        6        7        8  9        10 11       12       13 14 15
+        # bytes:			A5 0B 0D       00 00       00       00       00        00 00       00 00       00       00 00 00
+        #                   |~~~~~~|       |~~~|       ||       ||       ||        |~~~|       |~~~|       ||       |~~~~~~| 
+        # field:	   		constant       massage     unused   head     foot      head        foot        light    unused
+        #                                  time                 massage  massage   position    position
+        #                                  left (seconds)
+        # decimal value:	               1800                 1/3/6    1/3/6    ?*           ?*           0/1
+        # 
+        # Notes:
+        # - * not entirely sure what the max value is as testing kept getting slightly different results
+        # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
 
         # Mapping based on your comments in the original on_data method:
         # head_position/foot_position from data2[0:4] (bytes 8-11 overall)

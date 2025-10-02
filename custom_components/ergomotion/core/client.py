@@ -18,6 +18,9 @@ STATUS_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 # How often to check the status if notifications are not working (seconds)
 POLL_INTERVAL = 1
 
+# --- TEST WAKE-UP COMMAND ---
+# This is a test, based on your 'flat' command from device.py
+WAKEUP_COMMAND_TEST = b'\x04\x02\x08\x00\x00\x00'
 
 class Client:
     def __init__(self, device: BLEDevice, callback: Callable):
@@ -54,13 +57,19 @@ class Client:
 
                 self.callback(char=None, data=True)
 
-                # Attempt to start notify (still good practice)
+                # 1. Attempt to start notify
                 await self.client.start_notify(
                     STATUS_CHAR_UUID, self.callback
                 )
                 
-                # --- START POLLING TASK ---
-                self.poll_task = asyncio.create_task(self._poll_status()) # <-- NEW
+                # 2. SEND THE WAKE-UP COMMAND TEST
+                _LOGGER.debug(f"Sending wake-up test command: {WAKEUP_COMMAND_TEST.hex()}")
+                await self.client.write_gatt_char(
+                    COMMAND_CHAR_UUID, WAKEUP_COMMAND_TEST, False
+                )
+                
+                # 3. START POLLING
+                self.poll_task = asyncio.create_task(self._poll_status())
                 
                 _LOGGER.debug("connected")
 

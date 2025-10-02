@@ -1,14 +1,23 @@
 import asyncio
 import logging
 import time
-from typing import Callable
+from typing import Callable, Optional
 
 from bleak import BleakClient, BLEDevice, BleakError
 from bleak_retry_connector import establish_connection
+from bleak_retry_connector import BleakGATTCharacteristic
 
 _LOGGER = logging.getLogger(__name__)
 
 ACTIVE_TIME = 120  # seconds
+
+# --- CONSTANTS FOR COMMUNICATION ---
+# The UUID for the WRITE characteristic (where you send commands)
+COMMAND_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+# The UUID for the NOTIFY/READ status characteristic
+STATUS_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+# How often to check the status if notifications are not working (seconds)
+POLL_INTERVAL = 0.5 
 
 
 class Client:
@@ -16,13 +25,16 @@ class Client:
         self.device = device
         self.callback = callback
 
-        self.client: BleakClient | None = None
+        self.client: Optional[BleakClient] = None
 
-        self.ping_task: asyncio.Task | None = None
+        self.ping_task: Optional[asyncio.Task] = None
         self.ping_time = 0
 
-        self.send_task: asyncio.Task | None = None
-        self.send_data: bytes | None = None
+        self.send_task: Optional[asyncio.Task] = None
+        self.send_data: Optional[bytes] = None
+        
+        # New polling task to manually read status
+        self.poll_task: Optional[asyncio.Task] = None # <-- NEW
 
         self.ping()
 
@@ -43,17 +55,24 @@ class Client:
 
                 self.callback(char=None, data=True)
 
+                # Attempt to start notify (still good practice)
                 await self.client.start_notify(
-                    "6E400003-B5A3-F393-E0A9-E50E24DCCA9E", self.callback
+                    STATUS_CHAR_UUID, self.callback
                 )
-
+                
+                # --- START POLLING TASK ---
+                self.poll_task = asyncio.create_task(self._poll_status()) # <-- NEW
+                
                 _LOGGER.debug("connected")
 
                 while (delay := self.ping_time - time.time()) > 0:
                     await asyncio.sleep(delay)
 
                 _LOGGER.debug("disconnecting...")
-
+                
+                # Stop notifications before disconnecting
+                await self.client.stop_notify(STATUS_CHAR_UUID)
+                
                 await self.client.disconnect()
             except TimeoutError:
                 pass
@@ -62,30 +81,51 @@ class Client:
             except Exception as e:
                 _LOGGER.warning("ping error", exc_info=e)
             finally:
+                # --- CANCEL POLLING TASK ---
+                if self.poll_task: # <-- NEW
+                    self.poll_task.cancel()
+                    self.poll_task = None
+                
                 self.client = None
                 self.callback(None, False)
                 await asyncio.sleep(1)
 
         self.ping_task = None
 
+    # --- NEW POLLING COROUTINE ---
+    async def _poll_status(self):
+        """Repeatedly reads the status characteristic to get state data."""
+        while self.client and self.client.is_connected:
+            try:
+                # 1. READ the characteristic value
+                data = await self.client.read_gatt_char(STATUS_CHAR_UUID)
+                
+                # 2. Pass the data to the device callback for parsing (self.callback is Device.on_data)
+                self.callback(char=None, data=data)
+                
+            except asyncio.CancelledError:
+                # Exit cleanly when the task is cancelled (during disconnect)
+                raise
+            except BleakError as e:
+                _LOGGER.debug(f"Polling read error: {e}")
+            except Exception as e:
+                _LOGGER.warning(f"Unexpected polling error: {e}")
+            
+            # 3. Wait for the interval before polling again
+            await asyncio.sleep(POLL_INTERVAL)
+
     def send(self, data: bytes):
-        _LOGGER.debug("in send")
         self.send_data = data
-        _LOGGER.debug(f"send command: {self.client}")
-        _LOGGER.debug(f"send command: {self.client.is_connected}")
         _LOGGER.debug(f"send command: {self.send_task}")
-        self.send_task = None
-        # not sure if reporting connecting correctly so trying without check
-        #if self.client and self.client.is_connected and not self.send_task:
-        if self.client and not self.send_task:
+        if self.client and self.client.is_connected and not self.send_task:
             _LOGGER.debug("in send asyncio")
             self.send_task = asyncio.create_task(self._send_coro())
 
     async def _send_coro(self):
         try:
-            _LOGGER.debug(f"send command: {self.send_data.hex()}")
+            _LOGGER.debug(f"send coro: {self.send_data.hex()}")
             await self.client.write_gatt_char(
-                "6E400002-B5A3-F393-E0A9-E50E24DCCA9E", self.send_data, False
+                COMMAND_CHAR_UUID, self.send_data, False # Use new constant
             )
         except Exception as e:
             _LOGGER.warning("send error", exc_info=e)

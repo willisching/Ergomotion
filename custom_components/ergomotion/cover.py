@@ -13,10 +13,10 @@ async def async_setup_entry(
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
 
-    add_entities([
-        XCover(device, "head_position"), 
-        XCover(device, "foot_position"),
-    ])
+    #add_entities([
+    #    XCover(device, "head_position"), 
+    #    XCover(device, "foot_position"),
+    #])
 
 
 class XCover(XEntity, CoverEntity, RestoreEntity):

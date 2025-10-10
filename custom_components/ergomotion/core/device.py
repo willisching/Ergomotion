@@ -86,6 +86,7 @@ class Device:
             self.updates_state.append(handler)
 
     def on_data(self, char: BleakGATTCharacteristic | None, data: bytes | bool):
+        # haven't been able to get data back though
         _LOGGER.debug(f"on_data: {data}")
 
         if isinstance(data, bool):
@@ -134,7 +135,6 @@ class Device:
         # - * not entirely sure what the max value is as testing kept getting slightly different results
         # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
 
-
         head_position = int.from_bytes(data2[0:2], "little")
         foot_position = int.from_bytes(data2[2:4], "little")
         remain = int.from_bytes(data1[0:2], "little")
@@ -176,12 +176,13 @@ class Device:
                 is_on=self.connected, extra={"mac": self.client.device.address}
             )
 
-        if attr in ("head_position", "foot_position"):
-            move_attr = attr.replace("position", "move")
-            return Attribute(
-                position=self.current_state.get(attr),
-                move=self.current_state.get(move_attr),
-            )
+        # since can't get data, can't get position. best to just not use
+        #if attr in ("head_position", "foot_position"):
+        #    move_attr = attr.replace("position", "move")
+        #    return Attribute(
+        #        position=self.current_state.get(attr),
+        #        move=self.current_state.get(move_attr),
+        #    )
 
         if attr in ("head_massage", "foot_massage"):
             if percent := self.current_state.get(attr):
@@ -228,34 +229,9 @@ class Device:
         
         for attr, target in list(self.target_state.items()):
             current = self.current_state.get(attr)
-            
-            is_continuous = attr.endswith("_position")
-            
-            if is_continuous:
-                # Check if the target position is reached
-                is_reached = abs(current - target) < MIN_STEP
-                
-                if is_reached:
-                    # Target reached, send stop command and clear target
-                    self.client.send(COMMANDS_NUS_6BYTE['stop'])
-                    self.target_state.pop(attr)
-                    continue
 
-                # Determine direction and get command key
-                key = None
-                if attr == "head_position":
-                    key = 'head_up' if current < target else 'head_down'
-                elif attr == "foot_position":
-                    key = 'foot_up' if current < target else 'foot_down'
-                # Add lumbar/neck logic here if known
-                
-                if key and (command_to_send := COMMANDS_NUS_6BYTE.get(key)):
-                    # Found a continuous command, send it and break the loop
-                    break 
-
-            
             # Massage (Single-push cycle/toggle)
-            elif attr in ("head_massage", "foot_massage"):
+            if attr in ("head_massage", "foot_massage"):
                 if target == 0:
                     # User is turning it off, no command needed if it's already cycling down
                     self.target_state.pop(attr)

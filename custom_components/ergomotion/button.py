@@ -87,24 +87,28 @@ class XPositionButton(XEntity, ButtonEntity):
         self._attr_icon = self.ICONS[attr]
         self._attr_unique_id = device.mac.replace(":", "") + "_" + attr
         self.entity_id = DOMAIN + "." + self._attr_unique_id
-        self._moving = False
+        # Store moving flag on the device itself, keyed by axis
+        # so head_up and head_down share the same flag
+        self._axis = "head" if "head" in attr else "foot"
 
     async def async_press(self) -> None:
-        if self._moving:
-            # Second press while moving = stop
-            self._moving = False
+        axis_flag = f"_moving_{self._axis}"
+
+        if getattr(self.device, axis_flag, False):
+            # Already moving on this axis — stop it
+            setattr(self.device, axis_flag, False)
             self.device.set_attribute("stop", None)
             return
 
-        self._moving = True
+        setattr(self.device, axis_flag, True)
         deadline = asyncio.get_event_loop().time() + POSITION_MAX_DURATION
 
         try:
-            while self._moving and asyncio.get_event_loop().time() < deadline:
+            while getattr(self.device, axis_flag, False) and asyncio.get_event_loop().time() < deadline:
                 self.device.set_attribute(self.attr, 1)
                 await asyncio.sleep(POSITION_SEND_INTERVAL)
         finally:
-            self._moving = False
+            setattr(self.device, axis_flag, False)
 
 
 class XStopButton(XEntity, ButtonEntity):

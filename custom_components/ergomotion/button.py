@@ -23,7 +23,7 @@ async def async_setup_entry(
     device = hass.data[DOMAIN][config_entry.entry_id]
 
     add_entities([
-        XFlatButton(device, "stop"),
+        XFlatButton(device, "scene"),
         XMassageButton(device, "head_massage"),
         XMassageButton(device, "foot_massage"),
         XTimerButton(device, "timer_target"),

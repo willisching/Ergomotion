@@ -7,8 +7,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core import DOMAIN
 from .core.entity import XEntity
 
-POSITION_SEND_INTERVAL = 0.2  # seconds between repeated commands
+POSITION_SEND_INTERVAL = 0.3  # slightly longer to reduce BLE pressure
 POSITION_MAX_DURATION = 30    # safety cutoff in seconds
+RECONNECT_WAIT_INTERVAL = 0.5  # how long to wait between reconnect checks
 
 POSITION_ATTRS = {
     "head_up":    ("Head Up",    "mdi:arrow-up-box"),
@@ -71,10 +72,11 @@ class XPositionSwitch(XEntity, SwitchEntity):
             while self._attr_is_on and asyncio.get_event_loop().time() < deadline:
                 if self.device.connected:
                     self.device.set_attribute(self.attr, 1)
+                    await asyncio.sleep(POSITION_SEND_INTERVAL)
                 else:
-                    # Not connected yet — ping to trigger reconnect and wait
+                    # Not connected — ping to trigger reconnect and wait
                     self.device.client.ping()
-                await asyncio.sleep(POSITION_SEND_INTERVAL)
+                    await asyncio.sleep(RECONNECT_WAIT_INTERVAL)
         except asyncio.CancelledError:
             pass
         finally:

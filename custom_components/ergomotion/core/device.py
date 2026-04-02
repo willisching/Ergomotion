@@ -192,6 +192,13 @@ class Device:
                position=self.current_state.get(attr),
                move=self.current_state.get(move_attr),
            )
+        
+        if attr in ("lumbar_position", "neck_position"):
+           move_attr = attr.replace("position", "move")
+           return Attribute(
+               position=self.current_state.get(attr),
+               move=self.current_state.get(move_attr),
+           )
 
         if attr in ("head_massage", "foot_massage"):
             if percent := self.current_state.get(attr):
@@ -281,10 +288,15 @@ class Device:
                 if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
                     self.target_state.pop(attr)
                     break
+            
+            elif attr in ("lumbar_up", "lumbar_down", "neck_up", "neck_down"):
+                if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
+                    self.target_state.pop(attr)
+                    break
 
         if command_to_send:
             self.client.send(command_to_send)
         
         # If no target state remains and the bed is still moving, send a stop command
-        elif not self.target_state and (self.current_state.get("head_move") or self.current_state.get("foot_move")):
+        elif not self.target_state and (self.current_state.get("head_move") or self.current_state.get("foot_move") or self.current_state.get("lumbar_move") or self.current_state.get("neck_move")):
             self.client.send(COMMANDS_NUS_6BYTE['stop'])

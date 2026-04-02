@@ -26,7 +26,11 @@ async def async_setup_entry(
         XPositionButton(device, "head_down"),
         XPositionButton(device, "foot_up"),
         XPositionButton(device, "foot_down"),
-        XStopButton(device, "stop"),
+        XPositionButton(device, "lumbar_up"),
+        XPositionButton(device, "lumbar_down"),
+        XPositionButton(device, "neck_up"),
+        XPositionButton(device, "neck_down"),
+        #XStopButton(device, "stop"),
     ])
 
 
@@ -109,11 +113,52 @@ class XPositionButton(XEntity, ButtonEntity):
         finally:
             setattr(self.device, axis_flag, False)
 
+class XPositionButton2(XEntity, ButtonEntity):
+    ICONS = {
+        "lumbar_up":   "mdi:arrow-up-box",
+        "lumbar_down": "mdi:arrow-down-box",
+        "neck_up":   "mdi:arrow-up-box",
+        "neck_down": "mdi:arrow-down-box",
+    }
+    NAMES = {
+        "lumbar_up":   "Lumbar Up",
+        "lumbar_down": "Lumbar Down",
+        "neck_up":   "Neck Up",
+        "neck_down": "Neck Down",
+    }
 
-class XStopButton(XEntity, ButtonEntity):
+    def __init__(self, device, attr: str):
+        super().__init__(device, attr)
+        self._attr_name = self.NAMES[attr]
+        self._attr_icon = self.ICONS[attr]
+        self._attr_unique_id = device.mac.replace(":", "") + "_" + attr
+        self.entity_id = DOMAIN + "." + self._attr_unique_id
+        # Store moving flag on the device itself, keyed by axis
+        # so head_up and head_down share the same flag
+        self._axis = "lumbar" if "lumbar" in attr else "neck"
+
+    async def async_press(self) -> None:
+        axis_flag = f"_moving_{self._axis}"
+
+        if getattr(self.device, axis_flag, False):
+            setattr(self.device, axis_flag, False)
+            return
+
+        setattr(self.device, axis_flag, True)
+        deadline = asyncio.get_event_loop().time() + POSITION_MAX_DURATION
+
+        try:
+            while getattr(self.device, axis_flag, False) and asyncio.get_event_loop().time() < deadline:
+                self.device.client.ping()  # ← keep connection alive
+                self.device.set_attribute(self.attr, 1)
+                await asyncio.sleep(POSITION_SEND_INTERVAL)
+        finally:
+            setattr(self.device, axis_flag, False)
+
+""" class XStopButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:stop"
     _attr_name = "Stop Movement"
 
     async def async_press(self) -> None:
         # Stop any running position loops
-        self.device.set_attribute("stop", None)
+        self.device.set_attribute("stop", None) """

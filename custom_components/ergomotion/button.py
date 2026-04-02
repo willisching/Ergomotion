@@ -1,3 +1,4 @@
+import asyncio
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -6,9 +7,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core import DOMAIN
 from .core.entity import XEntity
 
-import asyncio
-
-TIMER_OPTIONS = ["10", "20", "30"]
+TIMER_CYCLE = ["10", "20", "30", None]
+POSITION_SEND_INTERVAL = 0.2  # seconds between repeated commands
+POSITION_MAX_DURATION = 30    # safety cutoff in seconds
 
 
 async def async_setup_entry(
@@ -47,14 +48,23 @@ class XMassageButton(XEntity, ButtonEntity):
 class XTimerButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:timer"
 
+    # Track timer state locally since bed sends no feedback
+    _timer_index: int = -1  # -1 = off, 0/1/2 = 10/20/30
+
     def __init__(self, device, attr: str):
         super().__init__(device, attr)
         self._attr_name = device.name + " Massage Timer Button"
         self._attr_unique_id = device.mac.replace(":", "") + "_timer_button"
         self.entity_id = DOMAIN + "." + self._attr_unique_id
-    
+
     async def async_press(self) -> None:
+        self._timer_index = (self._timer_index + 1) % len(TIMER_CYCLE)
         self.device.set_attribute(self.attr, 1)
+
+        # Push the local timer value into current_state so sensors update
+        self.device.current_state["timer_target"] = TIMER_CYCLE[self._timer_index]
+        for handler in self.device.updates_state:
+            handler()
 
 
 class XPositionButton(XEntity, ButtonEntity):
@@ -70,12 +80,6 @@ class XPositionButton(XEntity, ButtonEntity):
         "foot_up":   "Foot Up",
         "foot_down": "Foot Down",
     }
-    MOVE_ATTR = {
-        "head_up":   "head_move",
-        "head_down": "head_move",
-        "foot_up":   "foot_move",
-        "foot_down": "foot_move",
-    }
 
     def __init__(self, device, attr: str):
         super().__init__(device, attr)
@@ -87,25 +91,26 @@ class XPositionButton(XEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         if self._moving:
+            # Second press while moving = stop
+            self._moving = False
+            self.device.set_attribute("stop", None)
             return
 
         self._moving = True
-        move_attr = self.MOVE_ATTR[self.attr]
+        deadline = asyncio.get_event_loop().time() + POSITION_MAX_DURATION
 
         try:
-            while True:
+            while self._moving and asyncio.get_event_loop().time() < deadline:
                 self.device.set_attribute(self.attr, 1)
-                await asyncio.sleep(0.3)
-
-                # Stop if bed reports it's no longer moving (hit limit)
-                if not self.device.current_state.get(move_attr):
-                    break
+                await asyncio.sleep(POSITION_SEND_INTERVAL)
         finally:
             self._moving = False
+
 
 class XStopButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:stop"
     _attr_name = "Stop Movement"
 
     async def async_press(self) -> None:
-        self.device.set_attribute(self.attr, None)
+        # Stop any running position loops
+        self.device.set_attribute("stop", None)

@@ -159,17 +159,25 @@ class Device:
             "led": data2[4] & 0x40 > 0 if len(data2) > 4 else False,
         }
 
-        self.current_state["scene"] = (
-            self.current_state["head_position"] > MIN_STEP
-            or self.current_state["foot_position"] > MIN_STEP
-            or self.current_state["head_massage"] > 0
-            or self.current_state["foot_massage"] > 0
-        )
+        # If both positions are near zero, we are definitely in the 'flat' scene.
+        if head_position < MIN_STEP and foot_position < MIN_STEP:
+            self.current_state["scene"] = "flat"
+        
+        # If we are moving, we usually want to keep the scene name 
+        # that was just selected (which is already in self.current_state["scene"])
+        # so the UI doesn't "flicker" back to a different value while moving.
+        elif move != 0xF: 
+            pass 
+        
+        # Optional: If you eventually figure out the exact position numbers 
+        # for Zero-G, you can add an explicit check here:
+        # elif abs(head_position - 500) < MIN_STEP and abs(foot_position - 300) < MIN_STEP:
+        #     self.current_state["scene"] = "zerog"
 
         for handler in self.updates_state:
             handler()
 
-    def attribute(self, attr: str) -> Attribute:
+        """ def attribute(self, attr: str) -> Attribute:
         _LOGGER.debug("attribute")
         if attr == "connection":
             return Attribute(
@@ -203,7 +211,24 @@ class Device:
             )
 
         if attr == "led":
-            return Attribute(is_on=self.current_state.get(attr))
+            return Attribute(is_on=self.current_state.get(attr)) """
+
+    def attribute(self, name: str) -> Attribute:
+        """Helper for Home Assistant entities to get the current state."""
+        state = self.current_state
+        
+        if name == "head_position":
+            return Attribute(position=state["head_position"], move=state["head_move"])
+        if name == "foot_position":
+            return Attribute(position=state["foot_position"], move=state["foot_move"])
+        if name == "scene":
+            return Attribute(current=state["scene"], options=SCENE_OPTIONS)
+        if name == "connection":
+            return Attribute(is_on=self.connected)
+        if name == "led":
+            return Attribute(is_on=state["led"])
+            
+        return Attribute()
 
     def set_attribute(self, name: str, value: int | str | bool | None):
         _LOGGER.debug(f"set_attribute name: {name}")

@@ -13,7 +13,7 @@ async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry, add_entities: AddEntitiesCallback
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
-    add_entities([XPreset(device, "scene")])
+    add_entities([XPreset(device, "preset")])
 
 
 class XPreset(XEntity, SelectEntity):

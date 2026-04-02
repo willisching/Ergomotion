@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant, callback
 from .core import DOMAIN
 from .core.device import Device
 
-PLATFORMS = ["binary_sensor", "cover", "light", "select", "button"]
+PLATFORMS = ["binary_sensor", "cover", "light", "select", "button", "sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):

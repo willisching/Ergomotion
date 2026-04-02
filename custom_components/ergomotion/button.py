@@ -6,6 +6,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core import DOMAIN
 from .core.entity import XEntity
 
+import asyncio
+
 TIMER_OPTIONS = ["10", "20", "30"]
 
 
@@ -44,8 +46,13 @@ class XMassageButton(XEntity, ButtonEntity):
 
 class XTimerButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:timer"
-    _attr_name = "Massage Timer"
 
+    def __init__(self, device, attr: str):
+        super().__init__(device, attr)
+        self._attr_name = device.name + " Massage Timer Button"
+        self._attr_unique_id = device.mac.replace(":", "") + "_timer_button"
+        self.entity_id = DOMAIN + "." + self._attr_unique_id
+    
     async def async_press(self) -> None:
         self.device.set_attribute(self.attr, 1)
 
@@ -63,16 +70,38 @@ class XPositionButton(XEntity, ButtonEntity):
         "foot_up":   "Foot Up",
         "foot_down": "Foot Down",
     }
+    MOVE_ATTR = {
+        "head_up":   "head_move",
+        "head_down": "head_move",
+        "foot_up":   "foot_move",
+        "foot_down": "foot_move",
+    }
 
     def __init__(self, device, attr: str):
         super().__init__(device, attr)
         self._attr_name = self.NAMES[attr]
         self._attr_icon = self.ICONS[attr]
-        self._attr_unique_id = f"{device.mac}_{attr}"
+        self._attr_unique_id = device.mac.replace(":", "") + "_" + attr
+        self.entity_id = DOMAIN + "." + self._attr_unique_id
+        self._moving = False
 
     async def async_press(self) -> None:
-        self.device.set_attribute(self.attr, 1)
+        if self._moving:
+            return
 
+        self._moving = True
+        move_attr = self.MOVE_ATTR[self.attr]
+
+        try:
+            while True:
+                self.device.set_attribute(self.attr, 1)
+                await asyncio.sleep(0.3)
+
+                # Stop if bed reports it's no longer moving (hit limit)
+                if not self.device.current_state.get(move_attr):
+                    break
+        finally:
+            self._moving = False
 
 class XStopButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:stop"

@@ -86,15 +86,17 @@ class Device:
             self.updates_state.append(handler)
 
     def on_data(self, char: BleakGATTCharacteristic | None, data: bytes | bool):
-        # haven't been able to get data back though
         _LOGGER.debug(f"on_data: {data}")
 
         if isinstance(data, bool):
-            # connected true/false update
             self.connected = data
 
             for handler in self.updates_connect:
                 handler()
+
+            # If reconnected and commands are pending, send them
+            if data and self.target_state:
+                self.send_command()
             return
 
         # Check for the different known packet headers and lengths
@@ -219,6 +221,7 @@ class Device:
         _LOGGER.debug(f"set_attribute name: {name}")
         _LOGGER.debug(f"set_attribute value: {value}")
         self.target_state[name] = value
+        self.client.ping()
         
         if self.client and self.connected:
             self.send_command()

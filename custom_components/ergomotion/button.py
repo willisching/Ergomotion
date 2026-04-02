@@ -95,7 +95,6 @@ class XPositionButton(XEntity, ButtonEntity):
         axis_flag = f"_moving_{self._axis}"
 
         if getattr(self.device, axis_flag, False):
-            # Just stop the loop — bed halts naturally when commands stop
             setattr(self.device, axis_flag, False)
             return
 
@@ -104,6 +103,7 @@ class XPositionButton(XEntity, ButtonEntity):
 
         try:
             while getattr(self.device, axis_flag, False) and asyncio.get_event_loop().time() < deadline:
+                self.device.client.ping()  # ← keep connection alive
                 self.device.set_attribute(self.attr, 1)
                 await asyncio.sleep(POSITION_SEND_INTERVAL)
         finally:

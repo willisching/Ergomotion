@@ -19,8 +19,8 @@ COMMANDS_NUS_6BYTE = {
     'head_down':           b'\x04\x02\x00\x00\x00\x20',
     'foot_up':             b'\x04\x02\x00\x00\x00\x04',
     'foot_down':           b'\x04\x02\x00\x00\x00\x08',
-    'lumbar_up':           b'\x04\x02\x00\x00\x40\x00',
-    'lumbar_down':         b'\x04\x02\x00\x00\x80\x00',
+    'lumbar_up':           b'\x04\x02\x00\x00\x00\x40',
+    'lumbar_down':         b'\x04\x02\x00\x00\x00\x80',
     'neck_up':             b'\x04\x02\x00\x00\x00\x01',
     'neck_down':           b'\x04\x02\x00\x00\x00\x02',
     

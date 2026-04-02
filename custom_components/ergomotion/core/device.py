@@ -211,7 +211,6 @@ class Device:
             ) """
 
         if attr == "scene":
-            # Keeping 'is_on' as a boolean so your current Switch UI works
             # but adding 'current' so a Dropdown/Select will also work.
             scene_val = self.current_state.get("scene")
             remain = self.current_state.get("timer_remain")

@@ -229,11 +229,8 @@ class Device:
         _LOGGER.debug(f"set_attribute value: {value}")
         self.target_state[name] = value
         self.client.ping()
-        
-        if self.client and self.connected:
+        if self.connected:
             self.send_command()
-        
-        self.client.ping()
 
     def send_command(self):
         _LOGGER.debug("send_command")

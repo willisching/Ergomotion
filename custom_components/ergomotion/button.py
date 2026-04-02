@@ -23,7 +23,7 @@ async def async_setup_entry(
     device = hass.data[DOMAIN][config_entry.entry_id]
 
     add_entities([
-        XFlatButton(device, "scene"),
+        XFlatButton(device, "stop"),
         XMassageButton(device, "head_massage"),
         XMassageButton(device, "foot_massage"),
         XTimerButton(device, "timer_target"),
@@ -55,7 +55,7 @@ class XTimerButton(XEntity, ButtonEntity):
         super().__init__(device, attr)
         self._attr_name = device.name + " Massage Timer Button"
         self._attr_unique_id = device.mac.replace(":", "") + "_timer_button"
-        self.entity_id = DOMAIN + "." + self._attr_unique_id
+        self.entity_id = DOMAIN + "." + self._attr_unique_id.lower()
 
     async def async_press(self) -> None:
         self._timer_index = (self._timer_index + 1) % len(TIMER_CYCLE)

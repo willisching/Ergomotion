@@ -8,7 +8,7 @@ from .core import DOMAIN
 from .core.entity import XEntity
 
 POSITION_SEND_INTERVAL = 0.2  # seconds between repeated commands
-POSITION_MAX_DURATION = 60    # safety cutoff in seconds
+POSITION_MAX_DURATION = 30    # safety cutoff in seconds
 
 POSITION_ATTRS = {
     "head_up":    ("Head Up",    "mdi:arrow-up-box"),
@@ -45,7 +45,7 @@ class XPositionSwitch(XEntity, SwitchEntity):
         self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = device.mac.replace(":", "") + "_" + attr
-        self.entity_id = DOMAIN + "." + self._attr_unique_id
+        self.entity_id = DOMAIN + "." + self._attr_unique_id.lower()
         self._task: asyncio.Task | None = None
 
     async def async_turn_on(self, **kwargs) -> None:
@@ -69,8 +69,11 @@ class XPositionSwitch(XEntity, SwitchEntity):
         deadline = asyncio.get_event_loop().time() + POSITION_MAX_DURATION
         try:
             while self._attr_is_on and asyncio.get_event_loop().time() < deadline:
-                self.device.client.ping()
-                self.device.set_attribute(self.attr, 1)
+                if self.device.connected:
+                    self.device.set_attribute(self.attr, 1)
+                else:
+                    # Not connected yet — ping to trigger reconnect and wait
+                    self.device.client.ping()
                 await asyncio.sleep(POSITION_SEND_INTERVAL)
         except asyncio.CancelledError:
             pass

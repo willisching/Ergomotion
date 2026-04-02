@@ -202,14 +202,6 @@ class Device:
             else:
                 return Attribute(percentage=percent, options=TIMER_OPTIONS)
 
-            """         if attr == "scene":
-            remain = self.current_state.get("timer_remain")
-            return Attribute(
-                is_on=self.current_state.get(attr),
-                options=SCENE_OPTIONS,
-                extra={"timer_remain": remain} if remain else None,
-            ) """
-
         if attr == "scene":
             # but adding 'current' so a Dropdown/Select will also work.
             scene_val = self.current_state.get("scene")

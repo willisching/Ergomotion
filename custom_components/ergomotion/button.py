@@ -19,6 +19,10 @@ async def async_setup_entry(
         XMassageButton(device, "head_massage"),
         XMassageButton(device, "foot_massage"),
         XTimerButton(device, "timer_target"),
+        XHeadUp(device, "head_position"),
+        XHeadDown(device, "head_position"),
+        XFootUp(device, "foot_position"),
+        XFootDown(device, "foot_position"),
     ])
 
 
@@ -43,3 +47,34 @@ class XTimerButton(XEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         self.device.set_attribute(self.attr, 1)
+
+class XHeadUp(XEntity, ButtonEntity):
+    _attr_icon = "mdi:arrow-up-box"
+    _attr_name = "Head Up"
+
+    async def async_press(self) -> None:
+        self.device.set_attribute("head_position", 1)
+
+
+class XHeadDown(XEntity, ButtonEntity):
+    _attr_icon = "mdi:arrow-down-box"
+    _attr_name = "Head Down"
+
+    async def async_press(self) -> None:
+        self.device.set_attribute("head_position", -1)
+
+
+class XFootUp(XEntity, ButtonEntity):
+    _attr_icon = "mdi:arrow-up-box"
+    _attr_name = "Foot Up"
+
+    async def async_press(self) -> None:
+        self.device.set_attribute("foot_position", 1)
+
+
+class XFootDown(XEntity, ButtonEntity):
+    _attr_icon = "mdi:arrow-down-box"
+    _attr_name = "Foot Down"
+
+    async def async_press(self) -> None:
+        self.device.set_attribute("foot_position", -1)

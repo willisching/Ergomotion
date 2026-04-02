@@ -184,13 +184,12 @@ class Device:
                 is_on=self.connected, extra={"mac": self.client.device.address}
             )
 
-        # since can't get data, can't get position. best to just not use
-        #if attr in ("head_position", "foot_position"):
-        #    move_attr = attr.replace("position", "move")
-        #    return Attribute(
-        #        position=self.current_state.get(attr),
-        #        move=self.current_state.get(move_attr),
-        #    )
+        if attr in ("head_position", "foot_position"):
+           move_attr = attr.replace("position", "move")
+           return Attribute(
+               position=self.current_state.get(attr),
+               move=self.current_state.get(move_attr),
+           )
 
         if attr in ("head_massage", "foot_massage"):
             if percent := self.current_state.get(attr):
@@ -271,6 +270,12 @@ class Device:
             # Timer (Single-push cycle)
             elif attr == "timer_target":
                 if command_to_send := COMMANDS_NUS_6BYTE.get('timer_cycle'):
+                    self.target_state.pop(attr)
+                    break
+
+            # Continuous Movement (head_up, head_down, foot_up, foot_down)
+            elif attr in ("head_up", "head_down", "foot_up", "foot_down"):
+                if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
                     self.target_state.pop(attr)
                     break
 

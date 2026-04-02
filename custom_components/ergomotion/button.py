@@ -6,7 +6,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core import DOMAIN
 from .core.entity import XEntity
 
-TIMER_CYCLE = ["10", "20", "30", None]
+TIMER_OPTIONS = ["10", "20", "30"]
 
 
 async def async_setup_entry(
@@ -19,10 +19,11 @@ async def async_setup_entry(
         XMassageButton(device, "head_massage"),
         XMassageButton(device, "foot_massage"),
         XTimerButton(device, "timer_target"),
-        XHeadUp(device, "head_position"),
-        XHeadDown(device, "head_position"),
-        XFootUp(device, "foot_position"),
-        XFootDown(device, "foot_position"),
+        XPositionButton(device, "head_up"),
+        XPositionButton(device, "head_down"),
+        XPositionButton(device, "foot_up"),
+        XPositionButton(device, "foot_down"),
+        XStopButton(device, "stop"),
     ])
 
 
@@ -48,33 +49,34 @@ class XTimerButton(XEntity, ButtonEntity):
     async def async_press(self) -> None:
         self.device.set_attribute(self.attr, 1)
 
-class XHeadUp(XEntity, ButtonEntity):
-    _attr_icon = "mdi:arrow-up-box"
-    _attr_name = "Head Up"
+
+class XPositionButton(XEntity, ButtonEntity):
+    ICONS = {
+        "head_up":   "mdi:arrow-up-box",
+        "head_down": "mdi:arrow-down-box",
+        "foot_up":   "mdi:arrow-up-box",
+        "foot_down": "mdi:arrow-down-box",
+    }
+    NAMES = {
+        "head_up":   "Head Up",
+        "head_down": "Head Down",
+        "foot_up":   "Foot Up",
+        "foot_down": "Foot Down",
+    }
+
+    def __init__(self, device, attr: str):
+        super().__init__(device, attr)
+        self._attr_name = self.NAMES[attr]
+        self._attr_icon = self.ICONS[attr]
+        self._attr_unique_id = f"{device.mac}_{attr}"
 
     async def async_press(self) -> None:
-        self.device.set_attribute("head_position", 1)
+        self.device.set_attribute(self.attr, 1)
 
 
-class XHeadDown(XEntity, ButtonEntity):
-    _attr_icon = "mdi:arrow-down-box"
-    _attr_name = "Head Down"
-
-    async def async_press(self) -> None:
-        self.device.set_attribute("head_position", -1)
-
-
-class XFootUp(XEntity, ButtonEntity):
-    _attr_icon = "mdi:arrow-up-box"
-    _attr_name = "Foot Up"
+class XStopButton(XEntity, ButtonEntity):
+    _attr_icon = "mdi:stop"
+    _attr_name = "Stop Movement"
 
     async def async_press(self) -> None:
-        self.device.set_attribute("foot_position", 1)
-
-
-class XFootDown(XEntity, ButtonEntity):
-    _attr_icon = "mdi:arrow-down-box"
-    _attr_name = "Foot Down"
-
-    async def async_press(self) -> None:
-        self.device.set_attribute("foot_position", -1)
+        self.device.set_attribute(self.attr, None)

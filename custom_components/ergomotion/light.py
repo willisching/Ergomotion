@@ -12,10 +12,11 @@ async def async_setup_entry(
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
 
-    add_entities([XScene(device, "scene"), XLed(device, "led")])
+    #add_entities([XScene(device, "scene"), XLed(device, "led")])
+    add_entities([XLed(device, "led")])
 
 
-class XScene(XEntity, LightEntity):
+""" class XScene(XEntity, LightEntity):
     _attr_icon = "mdi:bed"
     _attr_supported_color_modes = ColorMode.ONOFF
     _attr_supported_features = LightEntityFeature.EFFECT
@@ -34,7 +35,7 @@ class XScene(XEntity, LightEntity):
         self.device.set_attribute(self.attr, effect or "zerog")
 
     async def async_turn_off(self, **kwargs) -> None:
-        self.device.set_attribute(self.attr, "flat")
+        self.device.set_attribute(self.attr, "flat") """
 
 
 class XLed(XEntity, LightEntity):

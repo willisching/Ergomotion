@@ -213,21 +213,39 @@ class Device:
         if attr == "led":
             return Attribute(is_on=self.current_state.get(attr)) """
 
-    def attribute(self, name: str) -> Attribute:
-        """Helper for Home Assistant entities to get the current state."""
-        state = self.current_state
+    def attribute(self, attr: str) -> Attribute:
+        _LOGGER.debug(f"attribute request for: {attr}")
         
-        if name == "head_position":
-            return Attribute(position=state["head_position"], move=state["head_move"])
-        if name == "foot_position":
-            return Attribute(position=state["foot_position"], move=state["foot_move"])
-        if name == "scene":
-            return Attribute(current=state["scene"], options=SCENE_OPTIONS)
-        if name == "connection":
-            return Attribute(is_on=self.connected)
-        if name == "led":
-            return Attribute(is_on=state["led"])
+        if attr == "connection":
+            return Attribute(
+                is_on=self.connected, 
+                extra={"mac": self.client.device.address if self.client else "Unknown"}
+            )
+
+        if attr in ("head_massage", "foot_massage"):
+            percent = self.current_state.get(attr, 0)
+            return Attribute(
+                percentage=percent,
+                current=self.current_state.get("timer_target"),
+                options=TIMER_OPTIONS,
+            )
+
+        if attr == "scene":
+            # Keeping 'is_on' as a boolean so your current Switch UI works
+            # but adding 'current' so a Dropdown/Select will also work.
+            scene_val = self.current_state.get("scene")
+            remain = self.current_state.get("timer_remain")
             
+            return Attribute(
+                is_on=scene_val != "flat", # Switch shows 'On' if not flat
+                current=scene_val,         # For the future Dropdown
+                options=SCENE_OPTIONS,
+                extra={"timer_remain": remain} if remain else None,
+            )
+
+        if attr == "led":
+            return Attribute(is_on=self.current_state.get("led", False))
+
         return Attribute()
 
     def set_attribute(self, name: str, value: int | str | bool | None):

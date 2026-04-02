@@ -18,6 +18,7 @@ async def async_setup_entry(
 
 class XPreset(XEntity, SelectEntity):
     _attr_icon = "mdi:bed"
+    _attr_name = "Preset"
     _attr_options = PRESETS
 
     def internal_update(self):

@@ -1,32 +1,39 @@
 from homeassistant.components.select import SelectEntity
-from .const import DOMAIN
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
+from .core import DOMAIN
+from .core.entity import XEntity
+
+PRESETS = ["flat", "snore", "memory1", "memory2", "memory3", "zerog"]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: ConfigEntry, add_entities: AddEntitiesCallback
+):
     device = hass.data[DOMAIN][config_entry.entry_id]
-    # Create a select entity for Scenes and one for the Massage Timer
-    async_add_entities([
-        ErgomotionSelect(device, "scene", "Bed Scene", ["flat", "snore", "memory1", "memory2", "memory3", "zerog"]),
-    ])
+    add_entities([XPreset(device, "scene")])
 
-class ErgomotionSelect(SelectEntity):
-    def __init__(self, device, attr, name, options):
-        self._device = device
-        self._attr = attr
-        self._attr_name = name
-        self._attr_options = options
 
-    @property
-    def name(self): return self._attr_name
+class XPreset(XEntity, SelectEntity):
+    _attr_icon = "mdi:bed"
+    _attr_options = PRESETS
 
-    @property
-    def options(self): return self._attr_options
+    def internal_update(self):
+        attribute = self.device.attribute(self.attr)
 
-    @property
-    def current_option(self):
-        # We need to pull the current string from our device state
-        return self._device.current_state.get(self._attr)
+        # Try to get the current preset from the device state
+        current = attribute.get("is_on")  # may be the active scene name
+        if current in PRESETS:
+            self._attr_current_option = current
+        else:
+            self._attr_current_option = None
 
-    async def async_select_option(self, option: str):
-        # This calls the set_attribute we already built!
-        self._device.set_attribute(self._attr, option)
-        self.async_write_ha_state()
+        if self.hass:
+            self._async_write_ha_state()
+
+    async def async_select_option(self, option: str) -> None:
+        self.device.set_attribute(self.attr, option)
+        self._attr_current_option = option
+        self._async_write_ha_state()

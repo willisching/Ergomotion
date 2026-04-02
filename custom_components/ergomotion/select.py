@@ -24,7 +24,7 @@ class XPreset(XEntity, SelectEntity):
         attribute = self.device.attribute(self.attr)
 
         # Try to get the current preset from the device state
-        current = attribute.get("is_on")  # may be the active scene name
+        current = attribute.get("current")
         if current in PRESETS:
             self._attr_current_option = current
         else:

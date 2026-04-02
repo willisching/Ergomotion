@@ -95,9 +95,8 @@ class XPositionButton(XEntity, ButtonEntity):
         axis_flag = f"_moving_{self._axis}"
 
         if getattr(self.device, axis_flag, False):
-            # Already moving on this axis — stop it
+            # Just stop the loop — bed halts naturally when commands stop
             setattr(self.device, axis_flag, False)
-            self.device.set_attribute("stop", None)
             return
 
         setattr(self.device, axis_flag, True)

@@ -13,7 +13,7 @@ async def async_setup_entry(
     device = hass.data[DOMAIN][config_entry.entry_id]
     add_entities([
         XTimerSensor(device, "timer_target"),
-        XTimerRemainSensor(device, "timer_remain"),
+        #XTimerRemainSensor(device, "timer_remain"),
     ])
 
 
@@ -27,7 +27,7 @@ class XTimerSensor(XEntity, SensorEntity):
             self._async_write_ha_state()
 
 
-class XTimerRemainSensor(XEntity, SensorEntity):
+""" class XTimerRemainSensor(XEntity, SensorEntity):
     _attr_icon = "mdi:timer-sand"
     _attr_name = "Massage Timer Remaining"
     _attr_native_unit_of_measurement = "s"
@@ -35,4 +35,4 @@ class XTimerRemainSensor(XEntity, SensorEntity):
     def internal_update(self):
         self._attr_native_value = self.device.current_state.get("timer_remain") or 0
         if self.hass:
-            self._async_write_ha_state()
+            self._async_write_ha_state() """

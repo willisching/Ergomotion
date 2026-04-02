@@ -26,10 +26,10 @@ async def async_setup_entry(
         XPositionButton(device, "head_down"),
         XPositionButton(device, "foot_up"),
         XPositionButton(device, "foot_down"),
-        XPositionButton(device, "lumbar_up"),
-        XPositionButton(device, "lumbar_down"),
-        XPositionButton(device, "neck_up"),
-        XPositionButton(device, "neck_down"),
+        XPositionButton2(device, "lumbar_up"),
+        XPositionButton2(device, "lumbar_down"),
+        XPositionButton2(device, "neck_up"),
+        XPositionButton2(device, "neck_down"),
         #XStopButton(device, "stop"),
     ])
 

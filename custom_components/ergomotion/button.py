@@ -51,6 +51,7 @@ class XMassageButton(XEntity, ButtonEntity):
         self._attr_name = device.name + " " + name
         self._attr_unique_id = device.mac.replace(":", "") + "_" + attr + "_button"
         self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
+        self._attr_icon = "mdi:sine-wave"
 
     async def async_press(self) -> None:
         await _stop_all_positions()

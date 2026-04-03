@@ -7,9 +7,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .core import DOMAIN
 from .core.entity import XEntity
 
-POSITION_SEND_INTERVAL = 0.3  # slightly longer to reduce BLE pressure
-POSITION_MAX_DURATION = 30    # safety cutoff in seconds
-RECONNECT_WAIT_INTERVAL = 0.5  # how long to wait between reconnect checks
+POSITION_SEND_INTERVAL = 0.3
+POSITION_MAX_DURATION = 30
+RECONNECT_WAIT_INTERVAL = 0.5
 
 POSITION_ATTRS = {
     "head_up":    ("Head Up",    "mdi:arrow-up-box"),
@@ -22,7 +22,7 @@ POSITION_ATTRS = {
     "neck_down":  ("Neck Down",  "mdi:arrow-down-box"),
 }
 
-# Module-level registry so all switches can see each other
+# Module-level registry so button.py and select.py can stop all movement
 _position_switches: list["XPositionSwitch"] = []
 
 
@@ -30,7 +30,6 @@ async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry, add_entities: AddEntitiesCallback
 ):
     device = hass.data[DOMAIN][config_entry.entry_id]
-
     switches = [XPositionSwitch(device, attr) for attr in POSITION_ATTRS]
     _position_switches.clear()
     _position_switches.extend(switches)
@@ -46,14 +45,14 @@ class XPositionSwitch(XEntity, SwitchEntity):
         self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = device.mac.replace(":", "") + "_" + attr
-        self.entity_id = DOMAIN + "." + self._attr_unique_id.lower()
+        self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
         self._task: asyncio.Task | None = None
 
     async def async_turn_on(self, **kwargs) -> None:
         # Stop all other position switches first
-        for switch in _position_switches:
-            if switch is not self and switch._attr_is_on:
-                await switch.async_turn_off()
+        for sw in _position_switches:
+            if sw is not self and sw._attr_is_on:
+                await sw.async_turn_off()
 
         self._attr_is_on = True
         self._async_write_ha_state()
@@ -80,5 +79,6 @@ class XPositionSwitch(XEntity, SwitchEntity):
         except asyncio.CancelledError:
             pass
         finally:
+            # Safety cutoff reached or task cancelled — reset to off
             self._attr_is_on = False
             self._async_write_ha_state()

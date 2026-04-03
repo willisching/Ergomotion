@@ -6,7 +6,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core import DOMAIN
 from .core.entity import XEntity
-from . import switch as switch_module  # to stop position switches
+from . import switch as switch_module
 
 TIMER_CYCLE = ["10", "20", "30", None]
 
@@ -32,11 +32,16 @@ async def async_setup_entry(
 
 class XFlatButton(XEntity, ButtonEntity):
     _attr_icon = "mdi:bed-outline"
-    _attr_name = "Flat"
+
+    def __init__(self, device, attr: str):
+        super().__init__(device, attr)
+        self._attr_name = "Stop"
+        self._attr_unique_id = device.mac.replace(":", "") + "_flat_button"
+        self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
 
     async def async_press(self) -> None:
         await _stop_all_positions()
-        self.device.set_attribute(self.attr, "flat")
+        self.device.set_attribute("scene", "flat")
 
 
 class XMassageButton(XEntity, ButtonEntity):
@@ -53,9 +58,9 @@ class XTimerButton(XEntity, ButtonEntity):
 
     def __init__(self, device, attr: str):
         super().__init__(device, attr)
-        self._attr_name = device.name + " Massage Timer Button"
+        self._attr_name = "Massage Timer"
         self._attr_unique_id = device.mac.replace(":", "") + "_timer_button"
-        self.entity_id = DOMAIN + "." + self._attr_unique_id.lower()
+        self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
 
     async def async_press(self) -> None:
         self._timer_index = (self._timer_index + 1) % len(TIMER_CYCLE)

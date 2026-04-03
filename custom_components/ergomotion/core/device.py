@@ -36,8 +36,8 @@ COMMANDS_NUS_6BYTE = {
     'stop':                b'\x04\x02\x08\x00\x00\x00', # Re-use flat as a stop command
     
     # Toggle/Cycle Commands
-    'back_massage':        b'\x04\x02\x00\x00\x08\x00',
-    'feet_massage':        b'\x04\x02\x00\x00\x04\x00',
+    'massage_back':        b'\x04\x02\x00\x00\x08\x00',
+    'massage_feet':        b'\x04\x02\x00\x00\x04\x00',
     'led_toggle':          b'\x04\x02\x00\x02\x00\x00',
     'timer_cycle':         b'\x04\x02\x00\x00\x02\x00'
 }
@@ -153,8 +153,8 @@ class Device:
             "feet_move": move != 0xF and move & 2 > 0,
             
             # data1[4] (overall byte 7) and data1[5] (overall byte 8) for massage levels
-            "back_massage": int(data1[4] / 6 * 100) if len(data1) > 4 else 0,
-            "feet_massage": int(data1[5] / 6 * 100) if len(data1) > 5 else 0,
+            "massage_back": int(data1[4] / 6 * 100) if len(data1) > 4 else 0,
+            "massage_feet": int(data1[5] / 6 * 100) if len(data1) > 5 else 0,
 
             "timer_target": TIMER_OPTIONS[timer - 1] if timer != 0xFF and 0 < timer <= len(TIMER_OPTIONS) else None,
             "timer_remain": remain, # remain is in seconds
@@ -195,7 +195,7 @@ class Device:
                move=self.current_state.get(move_attr),
            )
 
-        if attr in ("back_massage", "feet_massage"):
+        if attr in ("massage_back", "massage_feet"):
             if percent := self.current_state.get(attr):
                 return Attribute(
                     percentage=percent,
@@ -243,7 +243,7 @@ class Device:
             current = self.current_state.get(attr)
 
             # Massage (Single-push cycle/toggle)
-            if attr in ("back_massage", "feet_massage"):
+            if attr in ("massage_back", "massage_feet"):
                 if target == 0:
                     # User is turning it off, no command needed if it's already cycling down
                     self.target_state.pop(attr)

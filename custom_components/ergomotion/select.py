@@ -7,7 +7,7 @@ from .core import DOMAIN
 from .core.entity import XEntity
 from . import switch as switch_module
 
-PRESETS = ["Flat", "Snore", "Memory 1", "Memory 2", "Memory 3", "Zero G"]
+PRESETS = ["Flat", "Anti Snore", "Memory 1", "Memory 2", "Memory 3", "Zero G"]
 
 
 async def _stop_all_positions():

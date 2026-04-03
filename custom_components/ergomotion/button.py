@@ -14,7 +14,7 @@ PRESETS = ["flat", "snore", "memory1", "memory2", "memory3", "zerog"]
 
 PRESET_NAMES = {
     "flat":    "Flat",
-    "snore":   "Snore",
+    "snore":   "Anti Snore",
     "memory1": "Memory 1",
     "memory2": "Memory 2",
     "memory3": "Memory 3",

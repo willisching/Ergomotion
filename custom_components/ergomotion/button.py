@@ -31,7 +31,7 @@ async def async_setup_entry(
 
 
 class XFlatButton(XEntity, ButtonEntity):
-    _attr_icon = "mdi:bed-outline"
+    _attr_icon = "mdi:stop"
 
     def __init__(self, device, attr: str):
         super().__init__(device, attr)

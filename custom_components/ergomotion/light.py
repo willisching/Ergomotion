@@ -16,6 +16,12 @@ async def async_setup_entry(
 class XLed(XEntity, LightEntity):
     _attr_supported_color_modes = ColorMode.ONOFF
 
+    def __init__(self, device, attr: str):
+        super().__init__(device, attr)
+        self._attr_name = device.name + " Underbed Light"
+        self._attr_unique_id = device.mac.replace(":", "") + "_led"
+        self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
+
     def internal_update(self):
         attribute = self.device.attribute(self.attr)
 

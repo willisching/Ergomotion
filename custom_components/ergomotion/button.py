@@ -24,8 +24,8 @@ async def async_setup_entry(
 
     add_entities([
         XFlatButton(device, "scene"),
-        XMassageButton(device, "massage_back"),
-        XMassageButton(device, "massage_feet"),
+        XMassageButton(device, "massage_back", "Massage Back"),
+        XMassageButton(device, "massage_feet", "Massage Feet"),
         XTimerButton(device, "timer_target"),
     ])
 
@@ -45,7 +45,12 @@ class XFlatButton(XEntity, ButtonEntity):
 
 
 class XMassageButton(XEntity, ButtonEntity):
-    _attr_icon = "mdi:sine-wave"
+
+    def __init__(self, device, attr: str, name: str):
+        super().__init__(device, attr)
+        self._attr_name = device.name + " " + name
+        self._attr_unique_id = device.mac.replace(":", "") + "_" + attr + "_button"
+        self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
 
     async def async_press(self) -> None:
         await _stop_all_positions()

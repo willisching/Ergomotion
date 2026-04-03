@@ -24,7 +24,7 @@ async def async_setup_entry(
 
     add_entities([
         XFlatButton(device, "scene"),
-        XMassageButton(device, "head_massage"),
+        XMassageButton(device, "back_massage"),
         XMassageButton(device, "foot_massage"),
         XTimerButton(device, "timer_target"),
     ])

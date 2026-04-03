@@ -10,12 +10,16 @@ from . import switch as switch_module
 
 TIMER_CYCLE = ["10", "20", "30", None]
 
+PRESETS = ["flat", "snore", "memory1", "memory2", "memory3", "zerog"]
 
-async def _stop_all_positions():
-    for sw in switch_module._position_switches:
-        if sw._attr_is_on:
-            await sw.async_turn_off()
-
+PRESET_NAMES = {
+    "flat":    "Flat",
+    "snore":   "Snore",
+    "memory1": "Memory 1",
+    "memory2": "Memory 2",
+    "memory3": "Memory 3",
+    "zerog":   "Zero G",
+}
 
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry, add_entities: AddEntitiesCallback
@@ -23,26 +27,32 @@ async def async_setup_entry(
     device = hass.data[DOMAIN][config_entry.entry_id]
 
     add_entities([
-        XFlatButton(device, "scene"),
-        XMassageButton(device, "massage_back", "Massage Back"),
-        XMassageButton(device, "massage_feet", "Massage Feet"),
+        XPresetButton(device, preset) for preset in PRESETS
+    ] + [
+        XMassageButton(device, "head_massage", "Massage Back"),
+        XMassageButton(device, "foot_massage", "Massage Feet"),
         XTimerButton(device, "timer_target"),
     ])
 
 
-class XFlatButton(XEntity, ButtonEntity):
-    _attr_icon = "mdi:stop"
+class XPresetButton(XEntity, ButtonEntity):
+    _attr_icon = "mdi:bed"
 
-    def __init__(self, device, attr: str):
-        super().__init__(device, attr)
-        self._attr_name = "Stop"
-        self._attr_unique_id = device.mac.replace(":", "") + "_flat_button"
+    def __init__(self, device, preset: str):
+        super().__init__(device, "scene")
+        self._attr_name = device.name + " " + PRESET_NAMES[preset]
+        self._attr_unique_id = device.mac.replace(":", "") + "_preset_" + preset
         self.entity_id = (DOMAIN + "." + self._attr_unique_id).lower()
+        self._preset = preset
 
     async def async_press(self) -> None:
         await _stop_all_positions()
-        self.device.set_attribute("scene", "flat")
+        self.device.set_attribute("scene", self._preset)
 
+async def _stop_all_positions():
+    for sw in switch_module._position_switches:
+        if sw._attr_is_on:
+            await sw.async_turn_off()
 
 class XMassageButton(XEntity, ButtonEntity):
 

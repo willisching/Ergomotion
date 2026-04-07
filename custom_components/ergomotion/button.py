@@ -6,7 +6,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core import DOMAIN
 from .core.entity import XEntity
-from . import switch as switch_module
 
 TIMER_CYCLE = ["10", "20", "30", None]
 

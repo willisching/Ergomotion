@@ -15,14 +15,14 @@ TIMER_OPTIONS = ["10", "20", "30"]
 COMMANDS_NUS_6BYTE = {
 
     # Continuous Movement Commands (6 bytes)
-    'back_up':             b'\x04\x02\x00\x00\x00\x10',
-    'back_down':           b'\x04\x02\x00\x00\x00\x20',
+    'head_up':             b'\x04\x02\x00\x00\x00\x10',
+    'head_down':           b'\x04\x02\x00\x00\x00\x20',
     'feet_up':             b'\x04\x02\x00\x00\x00\x04',
     'feet_down':           b'\x04\x02\x00\x00\x00\x08',
     'lumbar_up':           b'\x04\x02\x00\x00\x00\x40',
     'lumbar_down':         b'\x04\x02\x00\x00\x00\x80',
-    'head_up':             b'\x04\x02\x00\x00\x00\x01',
-    'head_down':           b'\x04\x02\x00\x00\x00\x02',
+    'back_up':             b'\x04\x02\x00\x00\x00\x01',
+    'back_down':           b'\x04\x02\x00\x00\x00\x02',
     
     # Preset Commands (6 bytes) - Mapped to SCENE_OPTIONS
     'flat':                b'\x04\x02\x08\x00\x00\x00',

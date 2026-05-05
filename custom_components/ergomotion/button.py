@@ -28,7 +28,7 @@ async def async_setup_entry(
     add_entities([
         XPresetButton(device, preset) for preset in PRESETS
     ] + [
-        XMassageButton(device, "head_massage", "Massage Back"),
+        XMassageButton(device, "head_massage", "Massage Head"),
         XMassageButton(device, "foot_massage", "Massage Feet"),
         XTimerButton(device, "timer_target"),
     ])

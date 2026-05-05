@@ -15,14 +15,14 @@ TIMER_OPTIONS = ["10", "20", "30"]
 COMMANDS_NUS_6BYTE = {
 
     # Continuous Movement Commands (6 bytes)
-    'head_up':             b'\x04\x02\x00\x00\x00\x10',
-    'head_down':           b'\x04\x02\x00\x00\x00\x20',
+    'neck_up':             b'\x04\x02\x00\x00\x00\x10',
+    'neck_down':           b'\x04\x02\x00\x00\x00\x20',
     'feet_up':             b'\x04\x02\x00\x00\x00\x04',
     'feet_down':           b'\x04\x02\x00\x00\x00\x08',
     'lumbar_up':           b'\x04\x02\x00\x00\x00\x40',
     'lumbar_down':         b'\x04\x02\x00\x00\x00\x80',
-    'back_up':             b'\x04\x02\x00\x00\x00\x01',
-    'back_down':           b'\x04\x02\x00\x00\x00\x02',
+    'head_up':             b'\x04\x02\x00\x00\x00\x01',
+    'head_down':           b'\x04\x02\x00\x00\x00\x02',
     
     # Preset Commands (6 bytes) - Mapped to SCENE_OPTIONS
     'flat':                b'\x04\x02\x08\x00\x00\x00',
@@ -36,7 +36,7 @@ COMMANDS_NUS_6BYTE = {
     'stop':                b'\x04\x02\x08\x00\x00\x00', # Re-use flat as a stop command
     
     # Toggle/Cycle Commands
-    'massage_back':        b'\x04\x02\x00\x00\x08\x00',
+    'massage_head':        b'\x04\x02\x00\x00\x08\x00',
     'massage_feet':        b'\x04\x02\x00\x00\x04\x00',
     'led_toggle':          b'\x04\x02\x00\x02\x00\x00',
     'timer_cycle':         b'\x04\x02\x00\x00\x02\x00'
@@ -128,7 +128,7 @@ class Device:
         # position:         0  1  2        3   4        5        6        7        8  9        10 11       12       13 14 15
         # bytes:			A5 0B 0D       00 00       00       00       00        00 00       00 00       00       00 00 00
         #                   |~~~~~~|       |~~~|       ||       ||       ||        |~~~|       |~~~|       ||       |~~~~~~| 
-        # field:	   		constant       massage     unused   back     feet      back        feet        light    unused
+        # field:	   		constant       massage     unused   head     feet      head        feet        light    unused
         #                                  time                 massage  massage   position    position
         #                                  left (seconds)
         # decimal value:	               1800                 1/3/6    1/3/6    ?*           ?*           0/1
@@ -137,7 +137,7 @@ class Device:
         # - * not entirely sure what the max value is as testing kept getting slightly different results
         # - the only times that data seems to be sent is when returning to flat, timer, or massage buttons are pressed
 
-        back_position = int.from_bytes(data2[0:2], "little")
+        head_position = int.from_bytes(data2[0:2], "little")
         feet_position = int.from_bytes(data2[2:4], "little")
         remain = int.from_bytes(data1[0:2], "little")
         
@@ -146,14 +146,14 @@ class Device:
         timer = data2[5] if len(data2) > 5 else 0xFF
 
         self.current_state = {
-            "back_position": back_position if back_position != 0xFFFF else 0,
+            "head_position": head_position if head_position != 0xFFFF else 0,
             "feet_position": feet_position if feet_position != 0xFFFF else 0,
 
-            "back_move": move != 0xF and move & 1 > 0,
+            "head_move": move != 0xF and move & 1 > 0,
             "feet_move": move != 0xF and move & 2 > 0,
             
             # data1[4] (overall byte 7) and data1[5] (overall byte 8) for massage levels
-            "massage_back": int(data1[4] / 6 * 100) if len(data1) > 4 else 0,
+            "massage_head": int(data1[4] / 6 * 100) if len(data1) > 4 else 0,
             "massage_feet": int(data1[5] / 6 * 100) if len(data1) > 5 else 0,
 
             "timer_target": TIMER_OPTIONS[timer - 1] if timer != 0xFF and 0 < timer <= len(TIMER_OPTIONS) else None,
@@ -162,7 +162,7 @@ class Device:
         }
 
         # If both positions are near zero, we are definitely in the 'flat' scene.
-        if back_position < MIN_STEP and feet_position < MIN_STEP:
+        if head_position < MIN_STEP and feet_position < MIN_STEP:
             self.current_state["scene"] = "flat"
         
         # If we are moving, we usually want to keep the scene name 
@@ -181,21 +181,21 @@ class Device:
                 is_on=self.connected, extra={"mac": self.client.device.address}
             )
 
-        if attr in ("back_position", "feet_position"):
+        if attr in ("head_position", "feet_position"):
            move_attr = attr.replace("position", "move")
            return Attribute(
                position=self.current_state.get(attr),
                move=self.current_state.get(move_attr),
            )
         
-        if attr in ("lumbar_position", "head_position"):
+        if attr in ("lumbar_position", "neck_position"):
            move_attr = attr.replace("position", "move")
            return Attribute(
                position=self.current_state.get(attr),
                move=self.current_state.get(move_attr),
            )
 
-        if attr in ("massage_back", "massage_feet"):
+        if attr in ("massage_head", "massage_feet"):
             if percent := self.current_state.get(attr):
                 return Attribute(
                     percentage=percent,
@@ -243,7 +243,7 @@ class Device:
             current = self.current_state.get(attr)
 
             # Massage (Single-push cycle/toggle)
-            if attr in ("massage_back", "massage_feet"):
+            if attr in ("massage_head", "massage_feet"):
                 if target == 0:
                     # User is turning it off, no command needed if it's already cycling down
                     self.target_state.pop(attr)
@@ -275,13 +275,13 @@ class Device:
                     self.target_state.pop(attr)
                     break
 
-            # Continuous Movement (back_up, back_down, feet_up, feet_down)
-            elif attr in ("back_up", "back_down", "feet_up", "feet_down"):
+            # Continuous Movement (head_up, head_down, feet_up, feet_down)
+            elif attr in ("head_up", "head_down", "feet_up", "feet_down"):
                 if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
                     self.target_state.pop(attr)
                     break
             
-            elif attr in ("lumbar_up", "lumbar_down", "head_up", "head_down"):
+            elif attr in ("lumbar_up", "lumbar_down", "neck_up", "neck_down"):
                 if command_to_send := COMMANDS_NUS_6BYTE.get(attr):
                     self.target_state.pop(attr)
                     break
@@ -290,5 +290,5 @@ class Device:
             self.client.send(command_to_send)
         
         # If no target state remains and the bed is still moving, send a stop command
-        elif not self.target_state and (self.current_state.get("back_move") or self.current_state.get("feet_move") or self.current_state.get("lumbar_move") or self.current_state.get("head_move")):
+        elif not self.target_state and (self.current_state.get("head_move") or self.current_state.get("feet_move") or self.current_state.get("lumbar_move") or self.current_state.get("neck_move")):
             self.client.send(COMMANDS_NUS_6BYTE['stop'])

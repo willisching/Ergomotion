@@ -12,14 +12,14 @@ POSITION_MAX_DURATION = 30
 RECONNECT_WAIT_INTERVAL = 0.5
 
 POSITION_ATTRS = {
-    "back_up":    ("Back Raise",    "mdi:arrow-up-box"),
-    "back_down":  ("Back Lower",  "mdi:arrow-down-box"),
+    "head_up":    ("Head Raise",    "mdi:arrow-up-box"),
+    "head_down":  ("Head Lower",  "mdi:arrow-down-box"),
     "feet_up":    ("Feet Raise",    "mdi:arrow-up-box"),
     "feet_down":  ("Feet Lower",  "mdi:arrow-down-box"),
     "lumbar_up":  ("Lumbar Raise",  "mdi:arrow-up-box"),
     "lumbar_down":("Lumbar Lower","mdi:arrow-down-box"),
-    "head_up":    ("Head Raise",    "mdi:arrow-up-box"),
-    "head_down":  ("Head Lower",  "mdi:arrow-down-box"),
+    "neck_up":    ("Neck Raise",    "mdi:arrow-up-box"),
+    "neck_down":  ("Neck Lower",  "mdi:arrow-down-box"),
 }
 
 # Module-level registry so button.py and select.py can stop all movement
